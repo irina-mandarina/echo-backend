@@ -2,7 +2,6 @@ const axios = require('axios')
 const { getUserByUsername } = require('../userService')
 require('dotenv').config()
 
-
 const accessToken = process.env.REFRESH_TOKEN
 
 async function getCurrentlyPlayingEpisode() {
@@ -31,4 +30,11 @@ async function getEpisodeById(id) {
         }
     })
     return response.data
+}
+
+
+module.exports = {
+    getCurrentlyPlayingEpisode,
+    pollEpisodes,
+    getEpisodeById
 }

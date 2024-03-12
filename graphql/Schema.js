@@ -42,7 +42,7 @@ const schema = buildSchema(`
   }
 
   type Query {
-    getUser(id: ID!): User
+    getUser(username: String): User
     getUsers: [User]
     getCurrentlyPlaying: Episode
   }
@@ -54,7 +54,7 @@ const schema = buildSchema(`
   }
 
   type Mutation {
-    signUp(name: String!, email: String!, password: String!): AuthResponse
+    signUp(username: String!, email: String!, password: String!): AuthResponse
     logIn(email: String!, password: String!): AuthResponse
     updateUser(id: ID!, name: String, email: String, password: String): User
     deleteUser(id: ID!): User

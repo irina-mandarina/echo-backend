@@ -1,61 +1,78 @@
-const User = require("../models/User")
-const { getUserByUsername, getAllUsers, signUp, updateUser, logIn } = require("../services/userService")
+const User = require("../models/User");
+const userService = require("../services/userService");
+const graphqlFields = require('graphql-fields');
 
 const resolvers = {
-    getUser: async ({ username }, { requestedFields }, context) => {
-        try {
-            console.log(context.username)
-            const streamingDataRequested = requestedFields.contains('streamingData');
+    Query: {
+        getUser: async (parent, args, context, info) => {
+            try {
 
-            // If 'streamingData' is requested, call getUserByUsername with the additional flag
-            if (streamingDataRequested) {
-                const user = await getUserByUsername(username, true);
+                const topLevelFields = graphqlFields(info);
+
+                const streamingDataRequested = 'streamingData' in Object.keys(topLevelFields);
+                let user;
+
+                if (streamingDataRequested) {
+                    user = await userService.getUserByUsername(context.username, true);
+                } else {
+                    user = await userService.getUserByUsername(context.username);
+                }
+
                 return user;
-            } else {
-                // Otherwise, call getUserByUsername without the flag
-                const user = await getUserByUsername(username);
-                return user;
+            } catch (err) {
+                console.error("Error retrieving user:", err);
+                throw new Error("Failed to retrieve user");
             }
-        } catch (err) {
-            throw new Error("Error retrieving user")
+        },
+        getUsers: async () => {
+            try {
+                return userService.getAllUsers();
+            } catch (err) {
+                console.error("Error retrieving users:", err);
+                throw new Error("Failed to retrieve users");
+            }
         }
     },
-    getUsers: async () => {
-        try {
-            return getAllUsers()
-        } catch (err) {
-            throw new Error("Error retrieving users")
+    Mutation: {
+        signUp: async (_, { username, email, password }) => {
+            try {
+                console.log("Signing up:", username, email);
+                const { user, accessToken } = await userService.signUp(username, email, password);
+                return { user, accessToken };
+            } catch (err) {
+                console.error("Error creating user:", err);
+                throw new Error("Failed to create user");
+            }
+        },
+        logIn: async (_, { username, password }) => {
+            try {
+                console.log("Logging in:", username);
+                return userService.logIn(username, password);
+            } catch (err) {
+                console.error("Error logging in:", err);
+                throw new Error("Failed to log in");
+            }
+        },
+        updateUser: async (_, { password, bio }, { username }) => {
+            try {
+                console.log("Updating user:", username);
+                return userService.updateUser(username, { password, bio });
+            } catch (err) {
+                console.error("Error updating user:", err);
+                throw new Error("Failed to update user");
+            }
+        },
+        deleteUser: async (_, { id }) => {
+            try {
+                console.log("Deleting user:", id);
+                const user = await User.findByIdAndRemove(id);
+                return user;
+            } catch (err) {
+                console.error("Error deleting user:", err);
+                throw new Error("Failed to delete user");
+            }
         }
-    },
-    signUp: async ({ username, email, password }) => {
-        try {
-            return signUp(username, email, password)
-        } catch (err) {
-            throw new Error("Error creating user")
-        }
-    },
-    logIn: async ({ username, password }) => {
-        try {
-            return logIn(username, password)
-        } catch (err) {
-            throw new Error("Error logging in")
-        }
-    },
-    updateUser: async ({ password, bio }, _, context) => {
-        try {
-            return updateUser(context.username,{ password, bio })
-        } catch (err) {
-            throw new Error("Error updating user")
-        }
-    },
-    deleteUser: async ({ id }) => {
-        try {
-            const user = await User.findByIdAndRemove(id)
-            return user
-        } catch (err) {
-            throw new Error("Error deleting user")
-        }
-    },
-}
+    }
+};
 
-module.exports = resolvers
+module.exports = resolvers;

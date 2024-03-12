@@ -11,9 +11,15 @@ async function getAllUserModels() {
     }
 }
 
-async function getUserByUsernameModel(username) {
+async function getUserModelByUsername(username) {
     try {
         const user = await User.findOne({ username: username })
+        if (user) {
+            return user;
+        } else {
+            console.log(`User with username ${username} not found.`);
+            return null;
+        }
         return user
     } catch (error) {
         console.error("Error fetching user:", error)
@@ -36,6 +42,7 @@ async function updateUserModel(user) {
 }
 
 async function createUserModel(username, email, password) {
+    console.log("Creating user", username, email, password)
     try {
         const user = new User({
             username: username,
@@ -53,7 +60,7 @@ async function createUserModel(username, email, password) {
 
 module.exports = {
     getAllUserModels,
-    getUserByUsernameModel,
+    getUserModelByUsername,
     updateUserModel,
     createUserModel
 }
