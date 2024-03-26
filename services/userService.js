@@ -5,9 +5,10 @@ const bcrypt = require("bcrypt");
 
 const saltRounds = parseInt(process.env.SALT_ROUNDS);
 
-async function getUserByUsername(username, getEpisodes = false) {
+async function getUserByUsername(username, requestedUserUsername = null, getEpisodes = false) {
     try {
-        const user = await getUserModelByUsername(username)
+        if (requestedUserUsername === null) requestedUserUsername = username
+        const user = await getUserModelByUsername(requestedUserUsername)
         if (getEpisodes) {
             if (!user?.streamingData) return user
             const episodesPromises = user?.streamingData?.map(async (stream) => {

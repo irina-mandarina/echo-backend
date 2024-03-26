@@ -1,7 +1,7 @@
 const User = require("../models/User");
 const userService = require("../services/userService");
-const playerService = require("../services/spotify/playerService")
-const graphqlFields = require('graphql-fields');
+const playerService = require("../services/spotify/playerService");
+const graphqlFields = require('graphql-fields'); // Add this line
 
 const resolvers = {
     Query: {
@@ -11,13 +11,15 @@ const resolvers = {
                 const topLevelFields = graphqlFields(info);
 
                 const streamingDataRequested = 'streamingData' in Object.keys(topLevelFields);
-                let user;
+                const usernameRequested = 'username' in Object.keys(topLevelFields);
 
-                if (streamingDataRequested) {
-                    user = await userService.getUserByUsername(context.username, true);
-                } else {
-                    user = await userService.getUserByUsername(context.username);
-                }
+                let user = await userService.getUserByUsername(context.username, args.username, streamingDataRequested);
+
+                // if (streamingDataRequested) {
+                //     user = await userService.getUserByUsername(context.username, true);
+                // } else {
+                //     user = await userService.getUserByUsername(context.username);
+                // }
 
                 return user;
             } catch (err) {
