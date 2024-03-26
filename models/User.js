@@ -22,6 +22,10 @@ const userSchema = new mongoose.Schema({
     spotifyRefreshToken: {
         type: String
     },
+    spotifyState: {
+        type: String,
+        unique: true
+    },
     dateOfRegistration: {
         type: String
     },
@@ -30,7 +34,7 @@ const userSchema = new mongoose.Schema({
     },
     streamingData: [{
         episodeId: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: String,
             required: true
         },
         timestamp: {

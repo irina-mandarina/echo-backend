@@ -1,40 +1,43 @@
 const axios = require('axios')
-const { getUserByUsername } = require('../userService')
+const userService = require('../userService')
 require('dotenv').config()
 
-const accessToken = process.env.REFRESH_TOKEN
-
-async function getCurrentlyPlayingEpisode() {
-    const response = await axios.get('https://api.spotify.com/v1/me/player/currently-playing?additional_types=episode', {
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
-    })
-    console.log(response.data)
-    return response.data
-}
-
-async function pollEpisodes() {
-    const episode = await getCurrentlyPlayingEpisode()
-    if (episode) {
-
+async function getCurrentlyPlayingEpisode(spotifyAccessToken) {
+    try {
+        const response = await axios.get('https://api.spotify.com/v1/me/player/currently-playing?additional_types=episode', {
+            headers: {
+                Authorization: `Bearer ${spotifyAccessToken}`
+            }
+        })
+        console.log(response.data)
+        return response.data
+    }
+    catch (error) {
+        console.error("Error getting currently playing episode:", error)
+        throw error
     }
 }
 
-async function getEpisodeById(id) {
-    const response = await axios.get(`https://api.spotify.com/v1/episodes/${id}`, {
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/x-www-form-urlencoded"
+async function pollEpisodesForUser(username, spotifyAccessToken) {
+    try {
+        const episode = await getCurrentlyPlayingEpisode(spotifyAccessToken);
+        console.log(`Polling again in ${parseInt(process.env.EPISODE_POLL_INTERVAL)} milliseconds`);
+        if (episode) {
+            console.log(`Currently playing episode for ${username}: ${episode.item.name}`);
+            await userService.addStream(username, episode.item.id);
         }
-    })
-    return response.data
+    } catch (error) {
+        console.error("Error polling episodes for user:", error);
+    } 
+    finally {
+        // Wait for the specified interval before polling again
+        setTimeout(() => pollEpisodesForUser(username, spotifyAccessToken), parseInt(process.env.POLL_INTERVAL));
+    }
 }
+
 
 
 module.exports = {
     getCurrentlyPlayingEpisode,
-    pollEpisodes,
-    getEpisodeById
+    pollEpisodesForUser
 }

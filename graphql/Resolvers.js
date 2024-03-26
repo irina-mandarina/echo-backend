@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const userService = require("../services/userService");
+const playerService = require("../services/spotify/playerService")
 const graphqlFields = require('graphql-fields');
 
 const resolvers = {
@@ -30,6 +31,15 @@ const resolvers = {
             } catch (err) {
                 console.error("Error retrieving users:", err);
                 throw new Error("Failed to retrieve users");
+            }
+        },
+        getCurrentlyPlaying: async (parent, args, context, info) => {
+            try {
+                const episode = playerService.getCurrentlyPlayingEpisode(context.username);
+                return episode;
+            } catch (err) {
+                console.error("Error retrieving currently playing episode:", err);
+                throw new Error("Failed to retrieve currently playing episode");
             }
         }
     },

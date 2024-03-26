@@ -5,6 +5,12 @@ const authMiddleware = (req, res, next) => {
         console.log(next)
         return next();
     }
+    if (req.method === 'OPTIONS') {
+        if (req.headers.origin !== process.env.CLIENT_URL) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+        return next();
+    }
     if (req.headers.authorization) {
         const token = req.headers.authorization.split(' ')[1];
 

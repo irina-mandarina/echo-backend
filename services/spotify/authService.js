@@ -1,12 +1,11 @@
-const { getUsername } = require('../jwtService')
-
 const querystring = require('querystring')
 const axios = require('axios')
-const { getUserByUsername, updateUser } = require('../userService')
+const { getUserByUsername, updateUser, saveState, getUsernameBySpotifyState} = require('../userService')
+const {pollEpisodesForUser} = require("./playerService");
 
 const clientId = process.env.SPOTIFY_CLIENT_ID;
 const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-const redirectUri = 'http://localhost:8080/callback';
+const redirectUri = 'http://localhost:8080/spotify-callback';
 
 let accessToken = null;
 let refreshToken = null;
@@ -25,10 +24,11 @@ function generateRandomString(length) {
 function requestRefreshToken() {
     const authOptions = {
         url: 'https://accounts.spotify.com/api/token',
-        method: 'post',
+        method: 'POST',
         data: querystring.stringify({
             grant_type: 'refresh_token',
-            refresh_token: refreshToken
+            refresh_token: refreshToken,
+            clientId: clientId,
         }),
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -59,18 +59,26 @@ function requestRefreshToken() {
         });
 }
 
+async function getSpotifyLogInToken(req, res) {
+    const state = generateRandomString(16)
+    await saveState(req.username, state)
+    console.log("State:", state)
+    console.log("username:", req.username)
+    res.send({ state })
+}
+
 function spotifyLogIn(req, res) {
-
-    const state = generateRandomString(16);
-    const scope = 'user-read-private user-read-email user-read-playback-state user-read-currently-playing user-follow-read';
-
-    res.redirect(`https://accounts.spotify.com/authorize?response_type=code&client_id=${clientId}&scope=${scope}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`);
+    const scope = 'user-read-private user-read-email user-read-playback-state user-read-currently-playing user-follow-read'
+    const state = req.query.state
+    res.redirect(`https://accounts.spotify.com/authorize?response_type=code&client_id=${clientId}&scope=${scope}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`)
 }
 
 // in callback
-function requestToken(req, res) {
+async function requestToken(req, res) {
     const code = req.query.code || null;
     const state = req.query.state || null;
+
+    const username = (await getUsernameBySpotifyState(state)).username
 
     if (state === null) {
         res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
@@ -78,15 +86,16 @@ function requestToken(req, res) {
         const authOptions = {
             url: 'https://accounts.spotify.com/api/token',
             method: 'post',
-            data: querystring.stringify({
+            data: {
                 code: code,
                 redirect_uri: redirectUri,
                 grant_type: 'authorization_code'
-            }),
+            },
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Authorization': 'Basic ' + (Buffer.from(clientId + ':' + clientSecret).toString('base64'))
-            }
+            },
+            json: true
         };
 
         axios(authOptions)
@@ -105,16 +114,18 @@ function requestToken(req, res) {
 
                 // Schedule the next token refresh before the current one expires
                 setTimeout(requestRefreshToken, expiresIn * 1000); // Convert expiresIn to milliseconds
-
                 // save access and refresh tokens to mongoDB
                 const user = await getUserByUsername(username)
                 user.spotifyAccessToken = accessToken
                 user.spotifyRefreshToken = refreshToken
-                await updateUser(user)
+                await updateUser(username, user)
+
+                // Schedule polling for episodes
+                pollEpisodesForUser(username, accessToken);
             })
             .catch(function(error) {
                 // Error handling
-                console.error('Error:', error);
+                console.error('Error requesting access token:', error);
                 if (error.response) {
                     console.error('Status code:', error.response.status);
                     console.error('Response data:', error.response.data);
@@ -126,5 +137,5 @@ function requestToken(req, res) {
 module.exports = {
     spotifyLogIn,
     requestToken,
-    requestRefreshToken,
+    getSpotifyLogInToken
 }

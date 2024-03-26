@@ -30,7 +30,7 @@ async function getUserModelByUsername(username) {
 async function updateUserModel(user) {
     try {
         const updatedUser = await User.findByIdAndUpdate(
-            user.id,
+            user._id,
             user,
             {new: true}
         )
@@ -58,10 +58,29 @@ async function createUserModel(username, email, password) {
     }
 }
 
+async function getUserModelByField(field, value) {
+    try {
+        let query = {};
+        query[field] = value;
+        const user = await User.findOne(query);
+
+        if (user) {
+            return user;
+        } else {
+            console.log(`User with field ${field} and value ${value} not found.`);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching user:", error);
+        throw error;
+    }
+}
+
 module.exports = {
     getAllUserModels,
     getUserModelByUsername,
     updateUserModel,
-    createUserModel
+    createUserModel,
+    getUserModelByField
 }
 

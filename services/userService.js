@@ -1,5 +1,5 @@
-const { getEpisodeById } = require('./spotify/playerService')
-const { getAllUserModels, createUserModel, updateUserModel, getUserModelByUsername } = require("../mongooseRepos/userRepository");
+const { getEpisodeById } = require('./spotify/episodeService')
+const { getAllUserModels, createUserModel, updateUserModel, getUserModelByUsername, getUserModelByField } = require("../mongooseRepos/userRepository");
 const {generateToken} = require("./jwtService");
 const bcrypt = require("bcrypt");
 
@@ -8,15 +8,14 @@ const saltRounds = parseInt(process.env.SALT_ROUNDS);
 async function getUserByUsername(username, getEpisodes = false) {
     try {
         const user = await getUserModelByUsername(username)
-        if (!getEpisodes) {
-            const episodesPromises = user.streamingData?.map(async (stream) => {
+        if (getEpisodes) {
+            if (!user?.streamingData) return user
+            const episodesPromises = user?.streamingData?.map(async (stream) => {
                 const episodeId = stream.episodeId
-                const episode = await getEpisodeById(episodeId)
-                return episode
+                return await getEpisodeById(episodeId)
             })
 
-            const episodes = await Promise.all(episodesPromises) ?? []
-            user.streamingData = episodes
+            user.streamingData = await Promise.all(episodesPromises) ?? []
         }
         return user
     } catch (error) {
@@ -62,16 +61,50 @@ async function logIn(username, password) {
 }
 
 async function updateUser(username, user) {
-    if (username != user.username) {
+    if (username !== user.username) {
         throw new Error("You are not authorized to update this user")
     }
-    const updatedUser = await updateUserModel(user)
-    return updatedUser
+    return await updateUserModel(user)
+}
+
+async function deleteUser(username) {
+    const user = await getUserModelByUsername(username)
+    await user.delete()
+    return user
+}
+
+async function addStream(username, episodeId) {
+    const user = await getUserModelByUsername(username)
+    if (!user.streamingData) {
+        user.streamingData = []
+    }
+    user.streamingData.push({episodeId, timestamp: Date.now()})
+    return await updateUserModel(user)
+}
+
+async function saveState(username, state) {
+    try {
+        const user = await getUserModelByUsername(username)
+        user.spotifyState = state
+        const updatedUser = await updateUserModel(user)
+        return updatedUser
+    } catch (error) {
+        console.error("Error saving user state:", error)
+        throw error
+    }
+}
+
+async function getUsernameBySpotifyState(state) {
+    return await getUserModelByField("spotifyState", state)
 }
 
 module.exports = {
     getUserByUsername,
     getAllUsers,
     signUp,
-    updateUser
+    updateUser,
+    deleteUser,
+    addStream,
+    getUsernameBySpotifyState,
+    saveState
 }
