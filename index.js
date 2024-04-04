@@ -3,15 +3,17 @@ const mongoose = require("mongoose");
 const { ApolloServer, gql } = require('apollo-server-express');
 const typeDefs = require("./graphql/typeDefs");
 const resolvers = require("./graphql/Resolvers");
-const helmet = require('helmet');
 const { spotifyLogIn, requestToken, getSpotifyLogInToken } = require("./services/spotify/authService");
 const authMiddleware = require("./middleware/authMiddleware")
 const bodyParser = require("body-parser")
 const cors = require('cors')
 require('dotenv').config()
 
+
 const app = express();
 const PORT = parseInt(process.env.PORT)
+
+
 
 const corsOptions = {
     origin: process.env.CLIENT_URL,

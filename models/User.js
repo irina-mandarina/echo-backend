@@ -7,14 +7,10 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
-    email: {
+    supaId: {
         type: String,
         required: true,
         unique: true
-    },
-    password: {
-        type: String,
-        required: true
     },
     spotifyAccessToken: {
         type: String

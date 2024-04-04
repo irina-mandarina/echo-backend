@@ -20,12 +20,10 @@ exports.updateUserModel = async (username, updatedUser) => {
     return user
 }
 
-exports.createUserModel = async (username, email, password) => {
+exports.createUserModel = async (username, supaId) => {
     const user = new User({
         username: username,
-        email: email,
-        password: password,
-        dateOfRegistration: Date.now()
+        supaId
     })
     await user.save()
     return user

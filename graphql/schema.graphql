@@ -1,7 +1,6 @@
 type User {
     id: ID!
     username: String!
-    email: String!
     bio: String
     dateOfRegistration: String
     streamingData: [Stream]

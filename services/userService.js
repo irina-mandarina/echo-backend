@@ -1,9 +1,12 @@
 const { getEpisodeById } = require('./spotify/episodeService')
-const userRepository = require("../mongooseRepos/userRepository");
+const userRepository = require("../mongooseRepos/userRepository")
 const {generateToken} = require("./jwtService");
 const bcrypt = require("bcrypt");
+const { supabase } = require('../supabaseClient')
+require('dotenv').config()
 
 const saltRounds = parseInt(process.env.SALT_ROUNDS);
+
 
 exports.getUserByUsername = async (username, requestedUserUsername = null, getEpisodes = false) => {
     try {
@@ -40,12 +43,22 @@ exports.signUp = async (username, email, password) => {
     try {
         console.log("Signing up", username, email, password)
 
-        const encryptedPassword = await bcrypt.hash(password, saltRounds);
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+        })
+        if (error) {
+            console.error('Error signing up:', error.message)
+            return null
+        }
 
-        const user = await userRepository.createUserModel(username, email, encryptedPassword)
+        console.log(data)
+
+        const user = await userRepository.createUserModel(username, data.user.id)
+
         return {
             user,
-            jwt: generateToken(username)
+            jwt: data.session.access_token
         }
     }
     catch (error) {
@@ -54,23 +67,46 @@ exports.signUp = async (username, email, password) => {
     }
 }
 
-exports.logIn = async (username, password) => {
+exports.logIn = async (identifier, password) => {
     try {
-        const user = await userRepository.getUserModelByUsername(username)
-        return new Promise((resolve, reject) => {
-            bcrypt.compare(password, user.password, function(err, result) {
-                if (err) {
-                    reject(err)
-                } else if (result) {
-                    resolve({
-                        user,
-                        jwt: generateToken(username)
-                    })
-                } else {
-                    reject(new Error("Invalid password"))
-                }
-            })
+        let email = null
+        let user = null
+
+        // Check if identifier is a username
+        if (!identifier.includes("@")) {
+            user = await userRepository.getUserModelByUsername(identifier)
+            if (!user) {
+                throw new Error("User not found")
+            }
+            const { data, error } = await supabase.auth.admin.getUserById(user.supaId)
+            if (error) {
+                console.error('Error signing in:', error.message)
+                return null
+            }
+            email = data.email
+        }
+        else {
+            email = identifier
+        }
+        
+        const { data, error } = await supabase.auth.signIn({
+            email,
+            password,
         })
+
+        if (error) {
+            throw error
+        }
+
+        if (!user) {
+            user = await supabase.auth.admin.getUserById(data.user.id)
+        }
+
+        return {
+            user,
+            jwt: data.session.access_token
+        }
+        
     } catch (error) {
         console.error("Error logging in:", error)
         throw error

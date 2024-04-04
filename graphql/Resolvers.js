@@ -58,18 +58,17 @@ const resolvers = {
         signUp: async (_, { username, email, password }) => {
             try {
                 console.log("Signing up:", username, email)
-                const { user, jwt } = await userService.signUp(username, email, password)
-                console.log("Signed up:", user.username, user.email)
-                return { user, jwt }
+                const res = await userService.signUp(username, email, password)
+                return res
             } catch (err) {
                 console.error("Error creating user:", err)
                 throw new Error("Failed to create user")
             }
         },
-        logIn: async (_, { username, password }) => {
+        logIn: async (_, { identifier, password }) => {
             try {
-                console.log("Logging in:", username)
-                const res = await userService.logIn(username, password)
+                console.log("Logging in:", identifier)
+                const res = await userService.logIn(identifier, password)
                 return res
             } catch (err) {
                 console.error("Error logging in:", err)
