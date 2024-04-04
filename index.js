@@ -8,6 +8,7 @@ const { spotifyLogIn, requestToken, getSpotifyLogInToken } = require("./services
 const authMiddleware = require("./middleware/authMiddleware")
 const bodyParser = require("body-parser")
 const cors = require('cors')
+require('dotenv').config()
 
 const app = express();
 const PORT = parseInt(process.env.PORT)

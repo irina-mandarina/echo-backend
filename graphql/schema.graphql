@@ -46,7 +46,7 @@ type Query {
 
 type AuthResponse {
     user: User
-    accessToken: String
+    jwt: String
     refreshToken: String
 }
 

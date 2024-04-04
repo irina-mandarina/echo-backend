@@ -1,8 +1,9 @@
 const {getUsername} = require('../services/jwtService')
 
 const authMiddleware = (req, res, next) => {
-    if (req.body?.query?.toLowerCase().startsWith('mutation signup') || req.body?.query?.toLowerCase().startsWith('mutation login')) {
-        console.log(next)
+    if (req.body?.query?.toLowerCase().replace(/\s/g, '').startsWith('mutationsignup')
+            || 
+        req.body?.query?.toLowerCase().replace(/\s/g, '').startsWith('mutationlogin')) {
         return next();
     }
     if (req.method === 'OPTIONS') {
@@ -13,11 +14,16 @@ const authMiddleware = (req, res, next) => {
     }
     if (req.headers.authorization) {
         const token = req.headers.authorization.split(' ')[1];
-
+        console.log('Token:', token)
         if (token) {
-            const username = getUsername(token);
-            req.username = username;
-            return next();
+            try {
+                const username = getUsername(token)
+                req.username = username;
+                return next();
+            }
+            catch(err) {
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
         }
     }
 

@@ -3,9 +3,9 @@ const {gql} = require('apollo-server-express')
 const typeDefs = gql`
     type User {
         id: ID!
-            username: String!
-            email: String!
-            bio: String
+        username: String!
+        email: String!
+        bio: String
         dateOfRegistration: String
         streamingData: [Stream]
     }
@@ -49,13 +49,13 @@ const typeDefs = gql`
     
     type AuthResponse {
         user: User
-        accessToken: String
+        jwt: String
         refreshToken: String
     }
     
     type Mutation {
         signUp(username: String!, email: String!, password: String!): AuthResponse
-        logIn(email: String!, password: String!): AuthResponse
+        logIn(username: String!, password: String!): AuthResponse
         updateUser(id: ID!, name: String, email: String, password: String): User
         deleteUser(id: ID!): User
     }

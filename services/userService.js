@@ -1,14 +1,14 @@
 const { getEpisodeById } = require('./spotify/episodeService')
-const { getAllUserModels, createUserModel, updateUserModel, getUserModelByUsername, getUserModelByField } = require("../mongooseRepos/userRepository");
+const userRepository = require("../mongooseRepos/userRepository");
 const {generateToken} = require("./jwtService");
 const bcrypt = require("bcrypt");
 
 const saltRounds = parseInt(process.env.SALT_ROUNDS);
 
-async function getUserByUsername(username, requestedUserUsername = null, getEpisodes = false) {
+exports.getUserByUsername = async (username, requestedUserUsername = null, getEpisodes = false) => {
     try {
         if (requestedUserUsername === null) requestedUserUsername = username
-        const user = await getUserModelByUsername(requestedUserUsername)
+        const user = await userRepository.getUserModelByUsername(requestedUserUsername)
         if (getEpisodes) {
             if (!user?.streamingData) return user
             const episodesPromises = user?.streamingData?.map(async (stream) => {
@@ -25,69 +25,105 @@ async function getUserByUsername(username, requestedUserUsername = null, getEpis
     }
 }
 
-async function getAllUsers() {
-    const users = await getAllUserModels()
-    for (let user in users) {
-        user = await getUserModelByUsername(user.username)
-    }
-    return users
-}
-
-async function signUp(username, email, password) {
-    console.log("Signing up", username, email, password)
-
-    const encryptedPassword = await bcrypt.hash(password, saltRounds);
-    console.log("Encrypted password: ", encryptedPassword)
-
-    const user = await createUserModel(username, email, encryptedPassword)
-    return {
-        user,
-        accessToken: generateToken(username)
-    }
-}
-
-async function logIn(username, password) {
-    const user = await getUserModelByUsername(username)
-    bcrypt.compare(password, user.password, function(err, result) {
-        if (result) {
-            return {
-                user,
-                accessToken: generateToken(username)
-            }
-        }
-        else {
-            throw new Error("Invalid password")
-        }
-    })
-}
-
-async function updateUser(username, user) {
-    if (username !== user.username) {
-        throw new Error("You are not authorized to update this user")
-    }
-    return await updateUserModel(user)
-}
-
-async function deleteUser(username) {
-    const user = await getUserModelByUsername(username)
-    await user.delete()
-    return user
-}
-
-async function addStream(username, episodeId) {
-    const user = await getUserModelByUsername(username)
-    if (!user.streamingData) {
-        user.streamingData = []
-    }
-    user.streamingData.push({episodeId, timestamp: Date.now()})
-    return await updateUserModel(user)
-}
-
-async function saveState(username, state) {
+exports.getAllUsers = async () => {
     try {
-        const user = await getUserModelByUsername(username)
-        user.spotifyState = state
-        const updatedUser = await updateUserModel(user)
+        const users = await userRepository.getAllUserModels()
+        return users
+    } 
+    catch (error) {
+        console.error("Error fetching users:", error)
+        throw error
+    }
+}
+
+exports.signUp = async (username, email, password) => {
+    try {
+        console.log("Signing up", username, email, password)
+
+        const encryptedPassword = await bcrypt.hash(password, saltRounds);
+
+        const user = await userRepository.createUserModel(username, email, encryptedPassword)
+        return {
+            user,
+            jwt: generateToken(username)
+        }
+    }
+    catch (error) {
+        console.error("Error signing up:", error)
+        throw error
+    }
+}
+
+exports.logIn = async (username, password) => {
+    try {
+        const user = await userRepository.getUserModelByUsername(username)
+        return new Promise((resolve, reject) => {
+            bcrypt.compare(password, user.password, function(err, result) {
+                if (err) {
+                    reject(err)
+                } else if (result) {
+                    resolve({
+                        user,
+                        jwt: generateToken(username)
+                    })
+                } else {
+                    reject(new Error("Invalid password"))
+                }
+            })
+        })
+    } catch (error) {
+        console.error("Error logging in:", error)
+        throw error
+    }
+}
+
+exports.updateUser = async (username, user) => {
+    try {
+        if (username !== user.username) {
+            throw new Error("You are not authorized to update this user")
+        }
+        return await userRepository.updateUserModel(user)
+    }
+    catch (error) {
+        console.error("Error updating user:", error)
+        throw error
+    }
+}
+
+exports.deleteUser = async (username) => {
+    try {
+        const user = await userRepository.getUserModelByUsername(username)
+        await user.delete()
+        return user
+    }
+    catch (error) {
+        console.error("Error deleting user:", error)
+        throw error
+    }
+}
+
+exports.addStream = async (username, episodeId) => {
+    try {
+        const user = await userRepository.updateUserModel(username, {
+            $push: {
+            streamingData: {
+                episodeId,
+                timestamp: Date.now()
+            }
+            }
+        })
+    }
+    catch (error) {
+        console.error("Error adding stream:", error)
+        throw error
+    }
+}
+
+exports.saveState = async (username, state) => {
+    try {
+        const updatedUser = await userRepository.updateUserModel(username, {
+            spotifyState: state
+        })
         return updatedUser
     } catch (error) {
         console.error("Error saving user state:", error)
@@ -95,17 +131,12 @@ async function saveState(username, state) {
     }
 }
 
-async function getUsernameBySpotifyState(state) {
-    return await getUserModelByField("spotifyState", state)
-}
-
-module.exports = {
-    getUserByUsername,
-    getAllUsers,
-    signUp,
-    updateUser,
-    deleteUser,
-    addStream,
-    getUsernameBySpotifyState,
-    saveState
+exports.getUsernameBySpotifyState = async (state) => {
+    try {
+        return await userRepository.getUserModelByField("spotifyState", state)
+    }
+    catch (error) {
+        console.error("Error fetching user by spotify state:", error)
+        throw error
+    }
 }

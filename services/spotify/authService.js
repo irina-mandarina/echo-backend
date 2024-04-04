@@ -75,62 +75,68 @@ function spotifyLogIn(req, res) {
 
 // in callback
 async function requestToken(req, res) {
-    const code = req.query.code || null;
-    const state = req.query.state || null;
+    try {
+        const code = req.query.code || null;
+        const state = req.query.state || null;
 
-    const username = (await getUsernameBySpotifyState(state)).username
+        const username = (await getUsernameBySpotifyState(state)).username
 
-    if (state === null) {
-        res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
-    } else {
-        const authOptions = {
-            url: 'https://accounts.spotify.com/api/token',
-            method: 'post',
-            data: {
-                code: code,
-                redirect_uri: redirectUri,
-                grant_type: 'authorization_code'
-            },
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Authorization': 'Basic ' + (Buffer.from(clientId + ':' + clientSecret).toString('base64'))
-            },
-            json: true
-        };
+        if (state === null) {
+            res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
+        } else {
+            const authOptions = {
+                url: 'https://accounts.spotify.com/api/token',
+                method: 'post',
+                data: {
+                    code: code,
+                    redirect_uri: redirectUri,
+                    grant_type: 'authorization_code'
+                },
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': 'Basic ' + (Buffer.from(clientId + ':' + clientSecret).toString('base64'))
+                },
+                json: true
+            };
 
-        axios(authOptions)
-            .then(async function (response) {
-                // Success, handle response
-                const responseData = response.data;
-                accessToken = responseData.access_token;
-                expiresIn = responseData.expires_in;
-                refreshToken = responseData.refresh_token;
+            axios(authOptions)
+                .then(async function (response) {
+                    // Success, handle response
+                    const responseData = response.data;
+                    accessToken = responseData.access_token;
+                    expiresIn = responseData.expires_in;
+                    refreshToken = responseData.refresh_token;
 
-                console.log("Access Token:", accessToken);
-                console.log("Token Type:", responseData.token_type);
-                console.log("Scope:", responseData.scope);
-                console.log("Expires In:", expiresIn);
-                console.log("Refresh Token:", refreshToken);
+                    console.log("Access Token:", accessToken);
+                    console.log("Token Type:", responseData.token_type);
+                    console.log("Scope:", responseData.scope);
+                    console.log("Expires In:", expiresIn);
+                    console.log("Refresh Token:", refreshToken);
 
-                // Schedule the next token refresh before the current one expires
-                setTimeout(requestRefreshToken, expiresIn * 1000); // Convert expiresIn to milliseconds
-                // save access and refresh tokens to mongoDB
-                const user = await getUserByUsername(username)
-                user.spotifyAccessToken = accessToken
-                user.spotifyRefreshToken = refreshToken
-                await updateUser(username, user)
+                    // Schedule the next token refresh before the current one expires
+                    setTimeout(requestRefreshToken, expiresIn * 1000); // Convert expiresIn to milliseconds
+                    // save access and refresh tokens to mongoDB
+                    const user = await getUserByUsername(username)
+                    user.spotifyAccessToken = accessToken
+                    user.spotifyRefreshToken = refreshToken
+                    await updateUser(username, user)
 
-                // Schedule polling for episodes
-                pollEpisodesForUser(username, accessToken);
-            })
-            .catch(function(error) {
-                // Error handling
-                console.error('Error requesting access token:', error);
-                if (error.response) {
-                    console.error('Status code:', error.response.status);
-                    console.error('Response data:', error.response.data);
-                }
-            });
+                    // Schedule polling for episodes
+                    pollEpisodesForUser(username, accessToken);
+                })
+                .catch(function(error) {
+                    // Error handling
+                    console.error('Error requesting access token:', error);
+                    if (error.response) {
+                        console.error('Status code:', error.response.status);
+                        console.error('Response data:', error.response.data);
+                    }
+                });
+        }
+    }
+    catch (error) {
+        console.error('Error:', error)
+        res.redirect(process.env.CLIENT_URL + '/error')
     }
 }
 
