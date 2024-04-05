@@ -1,25 +1,14 @@
-const { getEpisodeById } = require('./spotify/episodeService')
 const userRepository = require("../mongooseRepos/userRepository")
-const {generateToken} = require("./jwtService");
-const bcrypt = require("bcrypt");
 const { supabase } = require('../supabaseClient')
+const episodeService = require('./spotify/episodeService')
 require('dotenv').config()
 
-const saltRounds = parseInt(process.env.SALT_ROUNDS);
 
-
-exports.getUserByUsername = async (username, requestedUserUsername = null, getEpisodes = false) => {
+exports.getUserByUsername = async (username, getEpisodes = false) => {
     try {
-        if (requestedUserUsername === null) requestedUserUsername = username
-        const user = await userRepository.getUserModelByUsername(requestedUserUsername)
+        const user = await userRepository.getUserModelByUsername(username)
         if (getEpisodes) {
-            if (!user?.streamingData) return user
-            const episodesPromises = user?.streamingData?.map(async (stream) => {
-                const episodeId = stream.episodeId
-                return await getEpisodeById(episodeId)
-            })
-
-            user.streamingData = await Promise.all(episodesPromises) ?? []
+            user.streamingData = await episodeService.getEpisodesForUser(user.streamingData)
         }
         return user
     } catch (error) {
@@ -27,6 +16,20 @@ exports.getUserByUsername = async (username, requestedUserUsername = null, getEp
         throw error
     }
 }
+
+exports.getUserBySupaId = async (supaId, getEpisodes = false) => {
+    try {
+        const user = await userRepository.getUserBySupaId(supaId)
+        if (getEpisodes) {
+            user.streamingData = await episodeService.getEpisodesForUser(user.streamingData)
+        }
+        return user
+    } catch (error) {
+        console.error("Error fetching user:", error)
+        throw error
+    }
+}
+
 
 exports.getAllUsers = async () => {
     try {
@@ -138,9 +141,9 @@ exports.deleteUser = async (username) => {
     }
 }
 
-exports.addStream = async (username, episodeId) => {
+exports.addStream = async (spotifyAccessToken, episodeId) => {
     try {
-        const user = await userRepository.updateUserModel(username, {
+        const user = await userRepository.updateUserModel(spotifyAccessToken, {
             $push: {
             streamingData: {
                 episodeId,
@@ -155,9 +158,9 @@ exports.addStream = async (username, episodeId) => {
     }
 }
 
-exports.saveState = async (username, state) => {
+exports.saveState = async (userSupaId, state) => {
     try {
-        const updatedUser = await userRepository.updateUserModel(username, {
+        const updatedUser = await userRepository.updateUserModel(userSupaId, {
             spotifyState: state
         })
         return updatedUser

@@ -1,4 +1,3 @@
-const mongoose = require("mongoose")
 const User = require("../models/User")
 
 exports.getAllUserModels = async () => {
@@ -11,12 +10,17 @@ exports.getUserModelByUsername = async (username) => {
     return user
 }
 
+exports.getUserBySupaId = async (supaId) => {
+    const user = await User.findOne({ supaId: supaId })
+    return user
+}
+
 exports.updateUserModel = async (username, updatedUser) => {
     const user = await User.findOneAndUpdate(
         { username: username },
         updatedUser,
         { new: true }
-    );
+    )
     return user
 }
 
@@ -30,9 +34,9 @@ exports.createUserModel = async (username, supaId) => {
 }
 
 exports.getUserModelByField = async (field, value) => {
-    let query = {};
-    query[field] = value;
-    const user = await User.findOne(query);
+    let query = {}
+    query[field] = value
+    const user = await User.findOne(query)
 
     return user
 }

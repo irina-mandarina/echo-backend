@@ -1,27 +1,28 @@
 const querystring = require('querystring')
 const axios = require('axios')
 const { getUserByUsername, updateUser, saveState, getUsernameBySpotifyState} = require('../userService')
-const {pollEpisodesForUser} = require("./playerService");
+// const {pollEpisodesForUser} = require("./playerService")
 
-const clientId = process.env.SPOTIFY_CLIENT_ID;
-const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-const redirectUri = 'http://localhost:8080/spotify-callback';
+const clientId = process.env.SPOTIFY_CLIENT_ID
+const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
+const redirectUri = 'http://localhost:8080/spotify-callback'
 
-let accessToken = null;
-let refreshToken = null;
-let expiresIn = 0;
+let accessToken = null
+let refreshToken = null
+let expiresIn = 0
 
 function generateRandomString(length) {
-    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let randomString = '';
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    let randomString = ''
     for (let i = 0; i < length; i++) {
-        const randomIndex = Math.floor(Math.random() * charset.length);
-        randomString += charset[randomIndex];
+        const randomIndex = Math.floor(Math.random() * charset.length)
+        randomString += charset[randomIndex]
     }
-    return randomString;
+    return randomString
 }
 
 function requestRefreshToken() {
+    console.log("Requesting refresh token...")
     const authOptions = {
         url: 'https://accounts.spotify.com/api/token',
         method: 'POST',
@@ -34,36 +35,36 @@ function requestRefreshToken() {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Authorization': 'Basic ' + (Buffer.from(clientId + ':' + clientSecret).toString('base64'))
         }
-    };
+    }
 
     axios(authOptions)
         .then(function(response) {
             // Success, handle response
-            const responseData = response.data;
-            accessToken = responseData.access_token;
-            expiresIn = responseData.expires_in;
+            const responseData = response.data
+            accessToken = responseData.access_token
+            expiresIn = responseData.expires_in
 
-            console.log("New Access Token:", accessToken);
-            console.log("Expires In:", expiresIn);
+            console.log("New Access Token:", accessToken)
+            console.log("Expires In:", expiresIn)
 
             // Schedule the next token refresh before the current one expires
-            setTimeout(requestRefreshToken, expiresIn * 1000); // Convert expiresIn to milliseconds
+            setTimeout(requestRefreshToken, expiresIn * 1000) // Convert expiresIn to milliseconds
         })
         .catch(function(error) {
             // Error handling
-            console.error('Error:', error);
+            console.error('Error:', error)
             if (error.response) {
-                console.error('Status code:', error.response.status);
-                console.error('Response data:', error.response.data);
+                console.error('Status code:', error.response.status)
+                console.error('Response data:', error.response.data)
             }
-        });
+        })
 }
 
 async function getSpotifyLogInToken(req, res) {
     const state = generateRandomString(16)
-    await saveState(req.username, state)
+    await saveState(req.userSupaId, state)
     console.log("State:", state)
-    console.log("username:", req.username)
+    console.log("Supabase User Id:", req.userSupaId)
     res.send({ state })
 }
 
@@ -76,13 +77,18 @@ function spotifyLogIn(req, res) {
 // in callback
 async function requestToken(req, res) {
     try {
-        const code = req.query.code || null;
-        const state = req.query.state || null;
+        const code = req.query.code || null
+        const state = req.query.state || null
 
-        const username = (await getUsernameBySpotifyState(state)).username
+        const user = (await getUsernameBySpotifyState(state))
+        if (!user) {
+            res.send("Invalid state")
+        }
+
+        const username = user.username
 
         if (state === null) {
-            res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
+            res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }))
         } else {
             const authOptions = {
                 url: 'https://accounts.spotify.com/api/token',
@@ -97,24 +103,24 @@ async function requestToken(req, res) {
                     'Authorization': 'Basic ' + (Buffer.from(clientId + ':' + clientSecret).toString('base64'))
                 },
                 json: true
-            };
+            }
 
             axios(authOptions)
                 .then(async function (response) {
                     // Success, handle response
-                    const responseData = response.data;
-                    accessToken = responseData.access_token;
-                    expiresIn = responseData.expires_in;
-                    refreshToken = responseData.refresh_token;
+                    const responseData = response.data
+                    accessToken = responseData.access_token
+                    expiresIn = responseData.expires_in
+                    refreshToken = responseData.refresh_token
 
-                    console.log("Access Token:", accessToken);
-                    console.log("Token Type:", responseData.token_type);
-                    console.log("Scope:", responseData.scope);
-                    console.log("Expires In:", expiresIn);
-                    console.log("Refresh Token:", refreshToken);
+                    console.log("Access Token:", accessToken)
+                    console.log("Token Type:", responseData.token_type)
+                    console.log("Scope:", responseData.scope)
+                    console.log("Expires In:", expiresIn)
+                    console.log("Refresh Token:", refreshToken)
 
                     // Schedule the next token refresh before the current one expires
-                    setTimeout(requestRefreshToken, expiresIn * 1000); // Convert expiresIn to milliseconds
+                    setTimeout(requestRefreshToken, expiresIn * 1000) // Convert expiresIn to milliseconds
                     // save access and refresh tokens to mongoDB
                     const user = await getUserByUsername(username)
                     user.spotifyAccessToken = accessToken
@@ -122,16 +128,16 @@ async function requestToken(req, res) {
                     await updateUser(username, user)
 
                     // Schedule polling for episodes
-                    pollEpisodesForUser(username, accessToken);
+                    // pollEpisodesForUser(username, accessToken)
                 })
                 .catch(function(error) {
                     // Error handling
-                    console.error('Error requesting access token:', error);
+                    console.error('Error requesting access token:', error)
                     if (error.response) {
-                        console.error('Status code:', error.response.status);
-                        console.error('Response data:', error.response.data);
+                        console.error('Status code:', error.response.status)
+                        console.error('Response data:', error.response.data)
                     }
-                });
+                })
         }
     }
     catch (error) {

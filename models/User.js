@@ -40,4 +40,9 @@ const userSchema = new mongoose.Schema({
     }]
 })
 
-module.exports = mongoose.model('User', userSchema)
+userModel = mongoose.model('User', userSchema)
+
+// userModel.plugin(require('mongoose-lifecycle'))
+userSchema.plugin(require('mongoose-lifecycle'))
+
+module.exports = userModel

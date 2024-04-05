@@ -2,11 +2,11 @@ const {gql} = require('apollo-server-express')
 
 const typeDefs = gql`
     type User {
-        id: ID!
         username: String!
         bio: String
         dateOfRegistration: String
         streamingData: [Stream]
+        spotifyConnected: Boolean
     }
     
     type Stream {
@@ -60,4 +60,4 @@ const typeDefs = gql`
     }
 `
 
-module.exports = typeDefs;
+module.exports = typeDefs

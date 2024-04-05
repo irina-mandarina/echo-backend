@@ -1,5 +1,4 @@
 const axios = require('axios')
-const userService = require('../userService')
 require('dotenv').config()
 
 async function getCurrentlyPlayingEpisode(spotifyAccessToken) {
@@ -22,24 +21,24 @@ async function getCurrentlyPlayingEpisode(spotifyAccessToken) {
 
 async function pollEpisodesForUser(username, spotifyAccessToken) {
     try {
-        const episode = await getCurrentlyPlayingEpisode(spotifyAccessToken);
-        console.log(`Polling again in ${parseInt(process.env.EPISODE_POLL_INTERVAL)} milliseconds`);
+        const episode = await getCurrentlyPlayingEpisode(spotifyAccessToken)
+        console.log(`Polling again in ${parseInt(process.env.EPISODE_POLL_INTERVAL)} milliseconds`)
         if (episode) {
-            console.log(`Currently playing episode for ${username}: ${episode.item.name}`);
-            await userService.addStream(username, episode.item.id);
+            console.log(`Currently playing episode for ${username}: ${episode.item.name}`)
+            await userService.addStream(username, episode.item.id)
         }
     } catch (error) {
-        console.error("Error polling episodes for user:", error);
+        console.error("Error polling episodes for user:", error)
     } 
     finally {
         // Wrap setTimeout in a Promise and await it before continuing
         await new Promise(resolve => {
             setTimeout(() => {
-                resolve();
-            }, parseInt(process.env.POLL_INTERVAL));
-        });
+                resolve()
+            }, parseInt(process.env.POLL_INTERVAL))
+        })
         // Poll episodes again after waiting for the specified interval
-        pollEpisodesForUser(username, spotifyAccessToken);
+        pollEpisodesForUser(username, spotifyAccessToken)
     }
 }
 
@@ -47,5 +46,5 @@ async function pollEpisodesForUser(username, spotifyAccessToken) {
 
 module.exports = {
     getCurrentlyPlayingEpisode,
-    pollEpisodesForUser
+    // pollEpisodesForUser
 }

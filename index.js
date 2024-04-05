@@ -1,19 +1,17 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const { ApolloServer, gql } = require('apollo-server-express');
-const typeDefs = require("./graphql/typeDefs");
-const resolvers = require("./graphql/Resolvers");
-const { spotifyLogIn, requestToken, getSpotifyLogInToken } = require("./services/spotify/authService");
+const express = require("express")
+const mongoose = require("mongoose")
+const { ApolloServer, gql } = require('apollo-server-express')
+const typeDefs = require("./graphql/typeDefs")
+const { resolvers } = require("./graphql/Resolvers")
+const authService = require("./services/spotify/authService")
 const authMiddleware = require("./middleware/authMiddleware")
+const { pollEpisodesForAllUsers } = require("./services/spotify/pollingService")
 const bodyParser = require("body-parser")
 const cors = require('cors')
 require('dotenv').config()
 
-
-const app = express();
+const app = express()
 const PORT = parseInt(process.env.PORT)
-
-
 
 const corsOptions = {
     origin: process.env.CLIENT_URL,
@@ -41,21 +39,15 @@ const apolloServer = new ApolloServer({
 async function startApolloServer() {
     await apolloServer.start()
     apolloServer.applyMiddleware({ app, cors: corsOptions })
+    pollEpisodesForAllUsers()
 }
 
-// app.use(helmet.contentSecurityPolicy({
-//     directives: {
-//         defaultSrc: ["'self'"],
-//         connectSrc: ["'self'", "http://localhost:8080/graphql"],
-//     }
-// }));
-
 startApolloServer().then(() => {
-    app.get('/spotify-login', spotifyLogIn)
-    app.get('/spotify-callback', requestToken)
-    app.get('/spotify-login-token', getSpotifyLogInToken)
+    app.get('/spotify-login', authService.spotifyLogIn)
+    app.get('/spotify-callback', authService.requestToken)
+    app.get('/spotify-login-token', authService.getSpotifyLogInToken)
 
     app.listen(PORT, () => {
         console.log(`Server running on http://localhost:${PORT}/graphql`)
-    });
-});
+    })
+})

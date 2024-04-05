@@ -1,6 +1,6 @@
 const axios = require('axios')
 
-async function getEpisodeById(id, spotifyAccessToken) {
+exports.getEpisodeById = async (id, spotifyAccessToken) => {
     const response = await axios.get(`https://api.spotify.com/v1/episodes/${id}`, {
         headers: {
             Authorization: `Bearer ${spotifyAccessToken}`,
@@ -10,6 +10,13 @@ async function getEpisodeById(id, spotifyAccessToken) {
     return response.data
 }
 
-module.exports = {  
-    getEpisodeById
+exports.getEpisodesForUser = async (streamingData) => {
+    if (!streamingData) return []
+
+    const episodesPromises = streamingData.map(async (stream) => {
+        const episodeId = stream.episodeId
+        return await getEpisodeById(episodeId)
+    })
+
+    return await Promise.all(episodesPromises) ?? []
 }
