@@ -1,5 +1,5 @@
 const userRepository = require("../mongooseRepos/userRepository")
-const { supabase } = require('../supabaseClient')
+const { supabase, supabaseAdmin } = require('../supabaseClient')
 const episodeService = require('./spotify/episodeService')
 require('dotenv').config()
 
@@ -57,7 +57,11 @@ exports.signUp = async (username, email, password) => {
 
         console.log(data)
 
-        const user = await userRepository.createUserModel(username, data.user.id)
+        const user = await userRepository.createUserModel({
+            username,
+            supaId: data.user.id,
+            spotifyState: data.user.id // temporary state
+        })
 
         return {
             user,
@@ -78,21 +82,24 @@ exports.logIn = async (identifier, password) => {
         // Check if identifier is a username
         if (!identifier.includes("@")) {
             user = await userRepository.getUserModelByUsername(identifier)
+            console.log("Loggin in with Username:", user.username)
             if (!user) {
                 throw new Error("User not found")
             }
-            const { data, error } = await supabase.auth.admin.getUserById(user.supaId)
+            const { data, error } = await supabaseAdmin.auth.admin.getUserById(user.supaId)
             if (error) {
-                console.error('Error signing in:', error.message)
+                console.error('Error getting user by id:', error.message)
                 return null
             }
             email = data.email
+            console.log("Email:", email)
         }
         else {
+            console.log("Loggin in with email:", identifier)
             email = identifier
         }
         
-        const { data, error } = await supabase.auth.signIn({
+        const { data, error } = await supabase.auth.SignInWithPassword({
             email,
             password,
         })
