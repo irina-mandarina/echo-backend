@@ -91,15 +91,15 @@ exports.logIn = async (identifier, password) => {
                 console.error('Error getting user by id:', error.message)
                 return null
             }
-            email = data.email
-            console.log("Email:", email)
+            email = data.user.email
+            console.log("Email:", data.user.email)
         }
         else {
             console.log("Loggin in with email:", identifier)
             email = identifier
         }
-        
-        const { data, error } = await supabase.auth.SignInWithPassword({
+
+        const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
         })
@@ -109,7 +109,7 @@ exports.logIn = async (identifier, password) => {
         }
 
         if (!user) {
-            user = await supabase.auth.admin.getUserById(data.user.id)
+            user = await this.getUserBySupaId(data.user.id)
         }
 
         return {
