@@ -1,4 +1,4 @@
-const userRepository = require("../mongooseRepos/userRepository")
+const userRepository = require("../repositories/userRepository")
 const { supabase, supabaseAdmin } = require('../supabaseClient')
 const episodeService = require('./spotify/episodeService')
 require('dotenv').config()
@@ -75,51 +75,59 @@ exports.signUp = async (username, email, password) => {
 }
 
 exports.logIn = async (identifier, password) => {
-    try {
-        let email = null
-        let user = null
+    return identifier.includes('@') ? logInWithEmail(identifier, password) : logInWithUsername(identifier, password)
+}
 
-        // Check if identifier is a username
-        if (!identifier.includes("@")) {
-            user = await userRepository.getUserModelByUsername(identifier)
-            console.log("Loggin in with Username:", user.username)
-            if (!user) {
-                throw new Error("User not found")
+const logInWithEmail = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+    })
+
+    if (error) {
+        console.log(error)
+        switch (error.message) {
+            case 'Invalid login credentials':
+                throw new Error(error.message)
+            default:
+                throw new Error("Failed to log in")
             }
-            const { data, error } = await supabaseAdmin.auth.admin.getUserById(user.supaId)
-            if (error) {
-                console.error('Error getting user by id:', error.message)
-                return null
+    }
+    const user = await this.getUserBySupaId(data.user.id)
+    if (!user) {
+        throw new Error("User does not exist")
+    }
+
+    return {
+        user,
+        jwt: data.session.access_token
+    }
+}
+
+const logInWithUsername = async (username, password) => {
+    const user = await userRepository.getUserModelByUsername(username)
+    if (!user) {
+        throw new Error("User does not exist")
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password,
+    })
+
+    if (error) {
+        console.log(error)
+        switch (error.message) {
+            case 'Invalid login credentials':
+                throw new Error("Wrong password")
+            default:
+                throw new Error("Failed to log in")
             }
-            email = data.user.email
-            console.log("Email:", data.user.email)
-        }
-        else {
-            console.log("Loggin in with email:", identifier)
-            email = identifier
-        }
+    }
 
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        })
-
-        if (error) {
-            throw error
-        }
-
-        if (!user) {
-            user = await this.getUserBySupaId(data.user.id)
-        }
-
-        return {
-            user,
-            jwt: data.session.access_token
-        }
-        
-    } catch (error) {
-        console.error("Error logging in:", error)
-        throw error
+    return {
+        user,
+        jwt: data.session.access_token
     }
 }
 

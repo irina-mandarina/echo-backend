@@ -1,7 +1,9 @@
 const User = require("../models/User")
 const userService = require("../services/userService")
 const playerService = require("../services/spotify/playerService")
-const graphqlFields = require('graphql-fields') // Add this line
+const graphqlFields = require('graphql-fields') 
+const { GraphQLError } = require('graphql')
+// const { EchoError } = require("../util/errors")
 
 exports.resolvers = {
     Query: {
@@ -59,18 +61,30 @@ exports.resolvers = {
                 const res = await userService.signUp(username, email, password)
                 return res
             } catch (err) {
-                console.error("Error creating user:", err)
-                throw new Error("Failed to create user")
+                throw new GraphQLError(error.message, {
+                    extensions: {
+                        code: 'UNAUTHORISED',
+                    },
+                })
             }
         },
         logIn: async (_, { identifier, password }) => {
             try {
+                
+                if (!identifier)
+                    throw new Error("No identifier provided")
+                if (!password)
+                    throw new Error("No password provided")
+
                 console.log("Logging in:", identifier)
                 const res = await userService.logIn(identifier, password)
                 return res
-            } catch (err) {
-                console.error("Error logging in:", err)
-                throw new Error("Failed to log in")
+            } catch (error) {
+                throw new GraphQLError(error.message, {
+                    extensions: {
+                        code: 'UNAUTHORISED',
+                    },
+                })
             }
         },
         updateUser: async (_, { password, bio }, { userSupaId }) => {

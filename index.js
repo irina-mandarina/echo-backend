@@ -33,16 +33,23 @@ const apolloServer = new ApolloServer({
     context:  ({ req }) => ({
         username: req.username,
         selection: req.selection
-    })
+    }),
+    // formatError: (error) => {
+    //     // Call your middleware function after formatting the error
+    //     // errorHandlerMiddleware(error, context);
+    //     console.log("In formaterror")
+    //     // Return the formatted error
+    //     return error;
+    //   }
 })
 
 async function startApolloServer() {
     await apolloServer.start()
     apolloServer.applyMiddleware({ app, cors: corsOptions })
-    pollEpisodesForAllUsers()
 }
 
 startApolloServer().then(() => {
+    pollEpisodesForAllUsers()
     app.get('/spotify-login', authService.spotifyLogIn)
     app.get('/spotify-callback', authService.requestToken)
     app.get('/spotify-login-token', authService.getSpotifyLogInToken)
