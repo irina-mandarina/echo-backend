@@ -9,7 +9,6 @@ exports.resolvers = {
     Query: {
         getUser: async (parent, args, { userSupaId }, info) => {
             try {
-
                 const topLevelFields = graphqlFields(info)
 
                 const streamingDataRequested = 'streamingData' in Object.keys(topLevelFields)
