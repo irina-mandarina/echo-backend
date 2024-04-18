@@ -56,14 +56,21 @@ exports.resolvers = {
     },
     Mutation: {
         signUp: async (_, { username, email, password }) => {
+            if (!username)
+                throw new Error("No username provided")
+            if (!email)
+                throw new Error("No email provided")
+            if (!password)
+                throw new Error("No password provided")
+            
             try {
                 console.log("Signing up:", username, email)
                 const res = await userService.signUp(username, email, password)
                 return res
-            } catch (err) {
+            } catch (error) {
                 throw new GraphQLError(error.message, {
                     extensions: {
-                        code: 'UNAUTHORISED',
+                        code: 'BAD_USER_INPUT',
                     },
                 })
             }

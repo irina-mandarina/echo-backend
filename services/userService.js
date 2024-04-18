@@ -43,25 +43,24 @@ exports.getAllUsers = async () => {
 }
 
 exports.signUp = async (username, email, password) => {
+    console.log("Signing up", username, email, password)
+
+    const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+    })
+
+    if (error) {
+        console.error('Error signing up:', error.message)
+        throw new Error(error.message)
+    }
+
     try {
-        console.log("Signing up", username, email, password)
-
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-        })
-        if (error) {
-            console.error('Error signing up:', error.message)
-            return null
-        }
-
-        console.log(data)
-
-        const user = await userRepository.createUserModel({
+        const user = await userRepository.createUserModel(
             username,
-            supaId: data.user.id,
-            spotifyState: data.user.id // temporary state
-        })
+            data.user.id,
+            data.user.id // temporary state
+        )
 
         return {
             user,
@@ -69,8 +68,14 @@ exports.signUp = async (username, email, password) => {
         }
     }
     catch (error) {
-        console.error("Error signing up:", error)
-        throw error
+        console.log(error.code)
+        if (error.code == '11000') {
+            // delete supabase user if user creation fails
+            await supabaseAdmin.auth.admin.deleteUser(data.user.id)
+            throw new Error("Username already registered")
+        }
+        console.error(error)
+        throw new Error("Failed to create user")
     }
 }
 
