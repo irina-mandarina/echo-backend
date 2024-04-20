@@ -8,7 +8,7 @@ async function getCurrentlyPlayingEpisode(spotifyAccessToken) {
                 Authorization: `Bearer ${spotifyAccessToken}`
             }
         })
-        if (!response.data || response.item.type != "episode") {
+        if (!response.data || response.item?.type != "episode") {
             return null
         }
         return response.data

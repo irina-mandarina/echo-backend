@@ -4,6 +4,7 @@ const { getCurrentlyPlayingEpisode } = require('./playerService');
 require('dotenv').config();
 
 async function startPollingForUser(spotifyAccessToken) {
+    console.log("Polling for user with access token:", spotifyAccessToken)
     var refreshId = setInterval(async () => {
         try {
             const episode = await getCurrentlyPlayingEpisode(spotifyAccessToken);
@@ -13,7 +14,7 @@ async function startPollingForUser(spotifyAccessToken) {
             }
         } catch (error) {
             console.error("Error polling episodes for user:", error);
-            if (error.response.status === 401) {
+            if (error.response?.status === 401) {
                 clearInterval(refreshId);
             }
         } 
@@ -39,7 +40,7 @@ exports.pollEpisodesForAllUsers = async () => {
             }
         })
         listenForDatabaseChanges();
-        console.log('Database change listener started.');
+        console.log('Database change listener started. (it does not work)');
     } catch (error) {
         console.error('An error occurred:', error);
     }

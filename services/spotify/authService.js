@@ -1,6 +1,7 @@
 const querystring = require('querystring')
 const axios = require('axios')
 const { getUserByUsername, updateUser, saveState, getUsernameBySpotifyState} = require('../userService')
+require('dotenv').config()
 // const {pollEpisodesForUser} = require("./playerService")
 
 const clientId = process.env.SPOTIFY_CLIENT_ID
@@ -23,6 +24,8 @@ function generateRandomString(length) {
 
 function requestRefreshToken() {
     console.log("Requesting refresh token...")
+    const encodedCredentials = Buffer.from(`${clientId}:${clientSecret}`, 'utf-8').toString('base64')
+
     const authOptions = {
         url: 'https://accounts.spotify.com/api/token',
         method: 'POST',
@@ -33,7 +36,7 @@ function requestRefreshToken() {
         }),
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': 'Basic ' + (Buffer.from(clientId + ':' + clientSecret).toString('base64'))
+            'Authorization': `Basic ${encodedCredentials}`
         }
     }
 
@@ -79,6 +82,7 @@ async function requestToken(req, res) {
     try {
         const code = req.query.code || null
         const state = req.query.state || null
+        const encodedCredentials = Buffer.from(`${clientId}:${clientSecret}`, 'utf-8').toString('base64')
 
         const user = await getUsernameBySpotifyState(state)
         if (!user) {
@@ -100,7 +104,7 @@ async function requestToken(req, res) {
                 },
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'Authorization': 'Basic ' + (Buffer.from(clientId + ':' + clientSecret).toString('base64'))
+                    'Authorization': `Basic ${encodedCredentials}`
                 },
                 json: true
             }
