@@ -8,12 +8,13 @@ const authMiddleware = async (req, res, next) => {
     }
     if (req.headers.authorization) {
         const token = req.headers.authorization.split(' ')[1]
-        console.log('Token:', token)
+        // console.log('Token:', token)
         if (token && token !== 'null' && token !== 'undefined') {
             try {
                 const { data: { user }, error } = await supabase.auth.getUser(token)
                 if (error) throw error
-                req.userSupaId = user.id
+                req.supaId = user.id
+                console.log("User authenticated: ", user.id)
                 return next()
             }
             catch(err) {

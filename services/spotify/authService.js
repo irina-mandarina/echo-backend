@@ -62,9 +62,9 @@ function requestRefreshToken() {
 
 async function getSpotifyLogInToken(req, res) {
     const state = generateRandomString(16)
-    await saveState(req.userSupaId, state)
+    await saveState(req.supaId, state)
     console.log("State:", state)
-    console.log("Supabase User Id:", req.userSupaId)
+    console.log("Supabase User Id:", req.supaId)
     res.send({ state })
 }
 
@@ -80,9 +80,9 @@ async function requestToken(req, res) {
         const code = req.query.code || null
         const state = req.query.state || null
 
-        const user = (await getUsernameBySpotifyState(state))
+        const user = await getUsernameBySpotifyState(state)
         if (!user) {
-            res.send("Invalid state")
+            return res.send("Invalid state")
         }
 
         const username = user.username

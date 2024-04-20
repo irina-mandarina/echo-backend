@@ -7,7 +7,7 @@ const { GraphQLError } = require('graphql')
 
 exports.resolvers = {
     Query: {
-        getUser: async (parent, args, { userSupaId }, info) => {
+        getUser: async (parent, args, { supaId }, info) => {
             try {
                 const topLevelFields = graphqlFields(info)
 
@@ -20,7 +20,7 @@ exports.resolvers = {
                     user = userService.getUserByUsername(args.username, streamingDataRequested)
                 }
                 else {
-                    user = await userService.getUserBySupaId(userSupaId, streamingDataRequested)
+                    user = await userService.getUserBySupaId(supaId, streamingDataRequested)
                 }
 
                 if (user.spotifyState) {
@@ -43,9 +43,9 @@ exports.resolvers = {
                 throw new Error("Failed to retrieve users")
             }
         },
-        getCurrentlyPlaying: async (parent, args, { userSupaId }, info) => {
+        getCurrentlyPlaying: async (parent, args, { supaId }, info) => {
             try {
-                const episode = playerService.getCurrentlyPlayingEpisode(userSupaId)
+                const episode = playerService.getCurrentlyPlayingEpisode(supaId)
                 return episode
             } catch (err) {
                 console.error("Error retrieving currently playing episode:", err)
@@ -93,10 +93,10 @@ exports.resolvers = {
                 })
             }
         },
-        updateUser: async (_, { password, bio }, { userSupaId }) => {
+        updateUser: async (_, { password, bio }, { supaId }) => {
             try {
-                console.log("Updating user:", userSupaId)
-                return userService.updateUser(userSupaId, { password, bio })
+                console.log("Updating user:", supaId)
+                return userService.updateUser(supaId, { password, bio })
             } catch (err) {
                 console.error("Error updating user:", err)
                 throw new Error("Failed to update user")

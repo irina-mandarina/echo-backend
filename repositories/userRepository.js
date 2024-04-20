@@ -15,9 +15,9 @@ exports.getUserBySupaId = async (supaId) => {
     return user
 }
 
-exports.updateUserModel = async (username, updatedUser) => {
+exports.updateUserModel = async (filter, updatedUser) => {
     const user = await User.findOneAndUpdate(
-        { username: username },
+        filter,
         updatedUser,
         { new: true }
     )

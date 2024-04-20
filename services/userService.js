@@ -58,8 +58,7 @@ exports.signUp = async (username, email, password) => {
     try {
         const user = await userRepository.createUserModel(
             username,
-            data.user.id,
-            data.user.id // temporary state
+            data.user.id
         )
 
         return {
@@ -141,7 +140,7 @@ exports.updateUser = async (username, user) => {
         if (username !== user.username) {
             throw new Error("You are not authorized to update this user")
         }
-        return await userRepository.updateUserModel(user)
+        return await userRepository.updateUserModel({username}, user)
     }
     catch (error) {
         console.error("Error updating user:", error)
@@ -163,7 +162,7 @@ exports.deleteUser = async (username) => {
 
 exports.addStream = async (spotifyAccessToken, episodeId) => {
     try {
-        const user = await userRepository.updateUserModel(spotifyAccessToken, {
+        const user = await userRepository.updateUserModel({spotifyAccessToken}, {
             $push: {
             streamingData: {
                 episodeId,
@@ -178,11 +177,12 @@ exports.addStream = async (spotifyAccessToken, episodeId) => {
     }
 }
 
-exports.saveState = async (userSupaId, state) => {
+exports.saveState = async (supaId, state) => {
     try {
-        const updatedUser = await userRepository.updateUserModel(userSupaId, {
+        const updatedUser = await userRepository.updateUserModel({supaId}, {
             spotifyState: state
         })
+        console.log("Saved state for user:", updatedUser)
         return updatedUser
     } catch (error) {
         console.error("Error saving user state:", error)

@@ -31,7 +31,7 @@ const apolloServer = new ApolloServer({
     typeDefs,
     resolvers,
     context:  ({ req }) => ({
-        userSupaId: req.userSupaId,
+        supaId: req.supaId,
         selection: req.selection
     }),
     // formatError: (error) => {
