@@ -33,14 +33,7 @@ const apolloServer = new ApolloServer({
     context:  ({ req }) => ({
         supaId: req.supaId,
         selection: req.selection
-    }),
-    // formatError: (error) => {
-    //     // Call your middleware function after formatting the error
-    //     // errorHandlerMiddleware(error, context);
-    //     console.log("In formaterror")
-    //     // Return the formatted error
-    //     return error;
-    //   }
+    })
 })
 
 async function startApolloServer() {

@@ -164,10 +164,10 @@ exports.addStream = async (spotifyAccessToken, episodeId) => {
     try {
         const user = await userRepository.updateUserModel({spotifyAccessToken}, {
             $push: {
-            streamingData: {
-                episodeId,
-                timestamp: Date.now()
-            }
+                streamingData: {
+                    episodeId,
+                    timestamp: Date.now()
+                }
             }
         })
     }
@@ -182,7 +182,6 @@ exports.saveState = async (supaId, state) => {
         const updatedUser = await userRepository.updateUserModel({supaId}, {
             spotifyState: state
         })
-        console.log("Saved state for user:", updatedUser)
         return updatedUser
     } catch (error) {
         console.error("Error saving user state:", error)
@@ -195,7 +194,22 @@ exports.getUsernameBySpotifyState = async (state) => {
         return await userRepository.getUserModelByField("spotifyState", state)
     }
     catch (error) {
-        console.error("Error fetching user by spotify state:", error)
+        console.error("Error fetching user by spotify state: ", error)
+        throw error
+    }
+}
+
+exports.removeAccessToken = async (spotifyAccessToken) => {
+    try {
+        return await userRepository.updateUserModel({spotifyAccessToken}, {
+            $unset: {
+                spotifyAccessToken: 1,
+                spotifyRefreshToken: 1
+            }
+        })
+    }
+    catch (error) {
+        console.error("Error removing access token: ", error)
         throw error
     }
 }

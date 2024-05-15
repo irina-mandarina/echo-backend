@@ -1,14 +1,14 @@
 const axios = require('axios')
 require('dotenv').config()
 
-async function getCurrentlyPlayingEpisode(spotifyAccessToken) {
+exports.getCurrentlyPlayingEpisode = async (spotifyAccessToken) => {
     try {
         const response = await axios.get('https://api.spotify.com/v1/me/player/currently-playing?additional_types=episode', {
             headers: {
                 Authorization: `Bearer ${spotifyAccessToken}`
             }
         })
-        if (!response.data || response.item?.type != "episode") {
+        if (!response.data || response.data.item?.type != "episode" || response.data.is_playing == false) {
             return null
         }
         return response.data
@@ -19,10 +19,10 @@ async function getCurrentlyPlayingEpisode(spotifyAccessToken) {
     }
 }
 
-async function pollEpisodesForUser(username, spotifyAccessToken) {
+exports.pollEpisodesForUser = async (username, spotifyAccessToken) => {
     try {
         const episode = await getCurrentlyPlayingEpisode(spotifyAccessToken)
-        console.log(`Polling again in ${parseInt(process.env.EPISODE_POLL_INTERVAL)} milliseconds`)
+        console.log(`Polling again in ${parseInt(process.env.POLL_INTERVAL)} milliseconds`)
         if (episode) {
             console.log(`Currently playing episode for ${username}: ${episode.item.name}`)
             await userService.addStream(username, episode.item.id)
@@ -40,11 +40,4 @@ async function pollEpisodesForUser(username, spotifyAccessToken) {
         // Poll episodes again after waiting for the specified interval
         pollEpisodesForUser(username, spotifyAccessToken)
     }
-}
-
-
-
-module.exports = {
-    getCurrentlyPlayingEpisode,
-    // pollEpisodesForUser
 }

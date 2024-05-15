@@ -3,30 +3,34 @@ const userService = require('../userService');
 const { getCurrentlyPlayingEpisode } = require('./playerService');
 require('dotenv').config();
 
-async function startPollingForUser(spotifyAccessToken) {
+exports.startPollingForUser = async (spotifyAccessToken) => {
     console.log("Polling for user with access token:", spotifyAccessToken)
     var refreshId = setInterval(async () => {
         try {
             const episode = await getCurrentlyPlayingEpisode(spotifyAccessToken);
-            console.log(`Polling again in ${parseInt(process.env.POLL_INTERVAL)} milliseconds`);
+            console.log(`Polling again in ${parseInt(process.env.EPISODE_POLL_INTERVAL)} milliseconds`);
             if (episode) {
+                console.log("Episode:", episode)
+                console.log(`Currently playing episode: ${episode.item.name}`);
                 await userService.addStream(spotifyAccessToken, episode.item.id);
             }
         } catch (error) {
             console.error("Error polling episodes for user:", error);
             if (error.response?.status === 401) {
                 clearInterval(refreshId);
+                console.log("Access token expired. Stopping polling for user.");
+                userService.removeAccessToken(spotifyAccessToken);
             }
         } 
     }, parseInt(process.env.EPISODE_POLL_INTERVAL));
     
 }
 
-async function listenForDatabaseChanges() {
+exports.listenForDatabaseChanges = () => {
     User.on('afterUpdate', function(user) {
         console.log("User updated: ", user)
         if (user.spotifyAccessToken) {
-            startPollingForUser(user.spotifyAccessToken)
+            this.startPollingForUser(user.spotifyAccessToken)
         }
     });
 }
@@ -36,12 +40,27 @@ exports.pollEpisodesForAllUsers = async () => {
         const users = await userService.getAllUsers()
         users.forEach(async user => {
             if (user.spotifyAccessToken) {
-                startPollingForUser(user.spotifyAccessToken)
+                this.startPollingForUser(user.spotifyAccessToken)
+            }
+            else {
+                this.checkForNewAccessToken(user)
             }
         })
-        listenForDatabaseChanges();
+        this.listenForDatabaseChanges();
         console.log('Database change listener started. (it does not work)');
     } catch (error) {
-        console.error('An error occurred:', error);
+        console.log("Error polling episodes for all users:", error)
+    }
+}
+
+exports.checkForNewAccessToken = async (user) => {
+    if (user.spotifyRefreshToken) {
+        try {
+            const newAccessToken = await userService.refreshAccessToken(user.spotifyRefreshToken)
+            await userService.updateUser(user._id, { spotifyAccessToken: newAccessToken })
+            this.startPollingForUser(newAccessToken)
+        } catch (error) {
+            console.error("Error refreshing access token for user:", error)
+        }
     }
 }
