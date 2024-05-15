@@ -35,9 +35,9 @@ exports.resolvers = {
                 throw new Error("Failed to retrieve user")
             }
         },
-        getUsers: async () => {
+        getUsers: async (parent, args, {supaId}, info) => {
             try {
-                return userService.getAllUsers()
+                return userService.getAllUsers(args.query)
             } catch (err) {
                 console.error("Error retrieving users:", err)
                 throw new Error("Failed to retrieve users")

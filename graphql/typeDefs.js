@@ -11,7 +11,7 @@ const typeDefs = gql`
     
     type Stream {
         episode: Episode!
-            timestamp: String!
+        timestamp: String!
     }
     
     type Episode {
@@ -42,7 +42,7 @@ const typeDefs = gql`
     
     type Query {
         getUser(username: String): User
-        getUsers: [User]
+        getUsers(query: String): [User]
         getCurrentlyPlaying: Episode
     }
     

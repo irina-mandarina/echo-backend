@@ -3,7 +3,6 @@ const { supabase, supabaseAdmin } = require('../supabaseClient')
 const episodeService = require('./spotify/episodeService')
 require('dotenv').config()
 
-
 exports.getUserByUsername = async (username, getEpisodes = false) => {
     try {
         const user = await userRepository.getUserModelByUsername(username)
@@ -23,6 +22,9 @@ exports.getUserBySupaId = async (supaId, getEpisodes = false) => {
         if (getEpisodes) {
             user.streamingData = await episodeService.getEpisodesForUser(user.streamingData)
         }
+        else {
+            user.streamingData = []
+        }
         return user
     } catch (error) {
         console.error("Error fetching user:", error)
@@ -31,9 +33,15 @@ exports.getUserBySupaId = async (supaId, getEpisodes = false) => {
 }
 
 
-exports.getAllUsers = async () => {
+exports.getAllUsers = async (query) => {
     try {
-        const users = await userRepository.getAllUserModels()
+        let users = []
+        if (query) {
+            users = await userRepository.searchUsersByUsername(query)
+        }
+        else {
+            users = await userRepository.getAllUserModels()
+        }
         return users
     } 
     catch (error) {

@@ -14,6 +14,7 @@ exports.getEpisodesForUser = async (streamingData) => {
     if (!streamingData) return []
 
     const episodesPromises = streamingData.map(async (stream) => {
+        console.log("Getting episode for stream", stream)
         const episodeId = stream.episodeId
         return await getEpisodeById(episodeId)
     })

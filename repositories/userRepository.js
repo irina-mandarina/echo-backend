@@ -41,3 +41,9 @@ exports.getUserModelByField = async (field, value) => {
     return user
 }
 
+exports.searchUsersByUsername = async (query) => {
+    const regexPattern = new RegExp("^" + query, "i"); // "i" flag for case-insensitive matching
+
+    return User.find({ username: { $regex: regexPattern } })
+}
+
