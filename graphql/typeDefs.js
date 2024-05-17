@@ -15,10 +15,12 @@ const typeDefs = gql`
     }
     
     type Episode {
-        id: ID!
-            title: String!
-            description: String
-        audioPreviewUrl: String
+        id: String!
+        name: String!
+        description: String
+        release_date: String
+        duration_ms: Int
+        audio_preview_url: String
         uri: String
         images: [Image]
         show: Show
@@ -31,19 +33,28 @@ const typeDefs = gql`
     }
     
     type Show {
-        id: ID!
-            uri: String!
-            name: String!
-            publisher: String
+        available_markets: [String]
         description: String
-        totalEpisodes: Int
+        html_description: String
+        explicit: Boolean
+        id: String
         images: [Image]
+        is_externally_hosted: Boolean
+        languages: [String]
+        media_type: String
+        name: String
+        publisher: String
+        type: String
+        uri: String
+        total_episodes: Int
     }
     
     type Query {
         getUser(username: String): User
         getUsers(query: String): [User]
         getCurrentlyPlaying: Episode
+        getEpisodes(query: String, limit: Int, offset: Int): [Episode]
+        getShows(query: String, limit: Int, offset: Int): [Show]
     }
     
     type AuthResponse {

@@ -14,7 +14,6 @@ const authMiddleware = async (req, res, next) => {
                 const { data: { user }, error } = await supabase.auth.getUser(token)
                 if (error) throw error
                 req.supaId = user.id
-                console.log("User authenticated: ", user.id)
                 return next()
             }
             catch(err) {

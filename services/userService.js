@@ -6,12 +6,15 @@ require('dotenv').config()
 exports.getUserByUsername = async (username, getEpisodes = false) => {
     try {
         const user = await userRepository.getUserModelByUsername(username)
-        if (getEpisodes) {
-            user.streamingData = await episodeService.getEpisodesForUser(user.streamingData)
+        if (getEpisodes && user.spotifyAccessToken) {
+            user.streamingData = await episodeService.getEpisodesForUser(user.streamingData, user.spotifyAccessToken)
+        }
+        else {
+            user.streamingData = []
         }
         return user
     } catch (error) {
-        console.error("Error fetching user:", error)
+        console.error("Error fetching user:", username, error)
         throw error
     }
 }
@@ -19,8 +22,8 @@ exports.getUserByUsername = async (username, getEpisodes = false) => {
 exports.getUserBySupaId = async (supaId, getEpisodes = false) => {
     try {
         const user = await userRepository.getUserBySupaId(supaId)
-        if (getEpisodes) {
-            user.streamingData = await episodeService.getEpisodesForUser(user.streamingData)
+        if (getEpisodes && user.spotifyAccessToken) {
+            user.streamingData = await episodeService.getEpisodesForUser(user.streamingData, user.spotifyAccessToken)
         }
         else {
             user.streamingData = []
@@ -122,8 +125,17 @@ const logInWithUsername = async (username, password) => {
         throw new Error("User does not exist")
     }
 
+    const { data: supaUserData, error: supaUserError } = await supabaseAdmin.auth.admin.getUserById(user.supaId)
+
+    if (supaUserError) {
+        console.error("Error fetching user:", supaUserError)
+        throw new Error("Failed to log in")
+    }
+
+    const supaUser = supaUserData.user
+
     const { data, error } = await supabase.auth.signInWithPassword({
-        email: user.email,
+        email: supaUser.email,
         password,
     })
 
@@ -145,9 +157,9 @@ const logInWithUsername = async (username, password) => {
 
 exports.updateUser = async (username, user) => {
     try {
-        if (username !== user.username) {
-            throw new Error("You are not authorized to update this user")
-        }
+        // if (username !== user.username) {
+        //     throw new Error("You are not authorized to update this user")
+        // }
         return await userRepository.updateUserModel({username}, user)
     }
     catch (error) {

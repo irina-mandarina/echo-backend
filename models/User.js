@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 
 const userSchema = new mongoose.Schema({
-    id: mongoose.Schema.Types.ObjectId,
+    // id: mongoose.Schema.Types.ObjectId,
     username: {
         type: String,
         required: true,
@@ -30,8 +30,7 @@ const userSchema = new mongoose.Schema({
     },
     streamingData: [{
         episodeId: {
-            type: String,
-            required: true
+            type: String
         },
         timestamp: {
             type: Date,
@@ -42,7 +41,6 @@ const userSchema = new mongoose.Schema({
 
 userModel = mongoose.model('User', userSchema)
 
-// userModel.plugin(require('mongoose-lifecycle'))
 userSchema.plugin(require('mongoose-lifecycle'))
 
 module.exports = userModel

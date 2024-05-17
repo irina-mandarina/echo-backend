@@ -1,6 +1,7 @@
 const User = require("../models/User")
 const userService = require("../services/userService")
 const playerService = require("../services/spotify/playerService")
+const episodeService = require("../services/spotify/episodeService")
 const graphqlFields = require('graphql-fields') 
 const { GraphQLError } = require('graphql')
 // const { EchoError } = require("../util/errors")
@@ -11,9 +12,9 @@ exports.resolvers = {
             try {
                 const topLevelFields = graphqlFields(info)
 
-                const streamingDataRequested = 'streamingData' in Object.keys(topLevelFields)
-                const usernameRequested = 'username' in Object.keys(topLevelFields)
-
+                const streamingDataRequested = 'streamingData' in topLevelFields
+                const usernameRequested = 'username' in Object.keys(args)
+                
                 let user = null
 
                 if (usernameRequested) {
@@ -23,7 +24,7 @@ exports.resolvers = {
                     user = await userService.getUserBySupaId(supaId, streamingDataRequested)
                 }
 
-                if (user.spotifyState) {
+                if (user.spotifyAccessToken) {
                     user.spotifyConnected = true
                 }
                 else {
@@ -51,6 +52,30 @@ exports.resolvers = {
                 console.error("Error retrieving currently playing episode:", err)
                 throw new Error("Failed to retrieve currently playing episode")
             }
+        },
+        getEpisodes: async (parent, { query, limit, offset}, { supaId }, info) => {
+            try {
+                const user = await userService.getUserBySupaId(supaId, false)
+                if (!user.spotifyAccessToken) {
+                    throw new Error("User has not connected their Spotify account")
+                }    
+                return episodeService.getEpisodes(query, limit, offset, user.spotifyAccessToken)
+            } catch (err) {
+                console.error("Error retrieving episodes:", err)
+                throw new Error("Failed to retrieve episodes")
+            }
+        },
+        getShows: async (parent, { query, limit, offset }, { supaId }, info) => {
+            try {
+                const user = await userService.getUserBySupaId(supaId, false)
+                if (!user.spotifyAccessToken) {
+                    throw new Error("User has not connected their Spotify account")
+                }
+                return episodeService.getShows(query, limit, offset, user.spotifyAccessToken)
+            } catch (err) {
+                console.error("Error retrieving shows:", err)
+                throw new Error("Failed to retrieve shows")
+            }
         }
     },
     Mutation: {
@@ -74,17 +99,44 @@ exports.resolvers = {
                 })
             }
         },
-        logIn: async (_, { identifier, password }) => {
+        logIn: async (_, { identifier, password }, __, info) => {
             try {
-                
                 if (!identifier)
                     throw new Error("No identifier provided")
                 if (!password)
                     throw new Error("No password provided")
 
-                console.log("Logging in:", identifier)
-                const res = await userService.logIn(identifier, password)
-                return res
+                const topLevelFields = graphqlFields(info)
+
+                const streamingDataRequested = 'streamingData' in Object.keys(topLevelFields)
+
+                const { user, jwt } = await userService.logIn(identifier, password)
+
+                if (user.spotifyAccessToken) {
+                    user.spotifyConnected = true
+                    if (streamingDataRequested) {
+                        try {
+                            user.streamingData = await episodeService.getEpisodesForUser(user.streamingData, user.spotifyAccessToken)
+                        } catch (error) {
+                            if (error.message === "No access token provided") {
+                                user.streamingData = []
+                            }
+                        }
+                    }
+                    else{
+                        user.streamingData = []
+                    }
+                }
+                else {
+                    user.spotifyConnected = false
+                }
+
+                
+
+                // console.log("Logged in:", user)
+                // console.log(user.streamingData)
+
+                return { user, jwt }
             } catch (error) {
                 throw new GraphQLError(error.message, {
                     extensions: {

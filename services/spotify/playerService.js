@@ -2,6 +2,9 @@ const axios = require('axios')
 require('dotenv').config()
 
 exports.getCurrentlyPlayingEpisode = async (spotifyAccessToken) => {
+    if (!spotifyAccessToken) {
+        throw new Error("No access token provided")
+    }
     try {
         const response = await axios.get('https://api.spotify.com/v1/me/player/currently-playing?additional_types=episode', {
             headers: {
@@ -14,7 +17,8 @@ exports.getCurrentlyPlayingEpisode = async (spotifyAccessToken) => {
         return response.data
     }
     catch (error) {
-        console.error("Error getting currently playing episode:", error)
+        if (error instanceof axios.AxiosError)
+            console.error("Error getting currently playing episode:", error)
         throw error
     }
 }

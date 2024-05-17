@@ -25,3 +25,14 @@ export type Show = {
     uri: string
     total_episodes: number
 }
+
+export type ShowSearchResult = {
+    name: string
+    publisher: string
+    images: {
+        url: string
+    }[]
+    uri: string
+    id: string
+    description: string
+}

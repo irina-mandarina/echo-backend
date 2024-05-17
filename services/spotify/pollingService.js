@@ -1,5 +1,7 @@
+const { AxiosError } = require('axios');
 const User = require('../../models/User');
 const userService = require('../userService');
+const authService = require('./authService');
 const { getCurrentlyPlayingEpisode } = require('./playerService');
 require('dotenv').config();
 
@@ -10,7 +12,6 @@ exports.startPollingForUser = async (spotifyAccessToken) => {
             const episode = await getCurrentlyPlayingEpisode(spotifyAccessToken);
             console.log(`Polling again in ${parseInt(process.env.EPISODE_POLL_INTERVAL)} milliseconds`);
             if (episode) {
-                console.log("Episode:", episode)
                 console.log(`Currently playing episode: ${episode.item.name}`);
                 await userService.addStream(spotifyAccessToken, episode.item.id);
             }
@@ -56,11 +57,16 @@ exports.pollEpisodesForAllUsers = async () => {
 exports.checkForNewAccessToken = async (user) => {
     if (user.spotifyRefreshToken) {
         try {
-            const newAccessToken = await userService.refreshAccessToken(user.spotifyRefreshToken)
-            await userService.updateUser(user._id, { spotifyAccessToken: newAccessToken })
+            const newAccessToken = await authService.requestRefreshToken(user.spotifyRefreshToken)
+            if (!newAccessToken) {
+                console.error("Error refreshing access token for user:", user.username)
+                return
+            }
+            await userService.updateUser(user.username, { spotifyAccessToken: newAccessToken })
             this.startPollingForUser(newAccessToken)
         } catch (error) {
-            console.error("Error refreshing access token for user:", error)
+            if (error instanceof AxiosError)
+            console.error("Error refreshing access token for user:", error.code)
         }
     }
 }

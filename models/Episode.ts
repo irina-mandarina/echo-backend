@@ -15,3 +15,15 @@ export type Episode = {
     uri: string // The Spotify URI for the episode.
     show: Show // The show on which the episode belongs.
 }
+
+export type EpisodeSearchResult = {
+    name: string
+    show: string
+    release_date: Date
+    images: {
+        url: string
+    }[]
+    uri: string
+    id: string
+    description: string
+}
