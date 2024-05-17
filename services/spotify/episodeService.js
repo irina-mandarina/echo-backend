@@ -19,13 +19,16 @@ exports.getEpisodesForUser = async (streamingData, spotifyAccessToken) => {
         try {
             const episode = await this.getEpisodeById(stream.episodeId, spotifyAccessToken)
             console.log("Episode:", episode.name)
-            return episode
+            return {
+                episode,
+                timestamps: stream.timestamps
+            }
         } catch (error) {
             console.error("Error fetching episode:", stream.episode, "Error:", error.response?.data)
         }
     })
     const episodes = await Promise.all(episodesPromises)
-    console.log("Episodes promises:", episodes.length)
+    console.log("Episodes :", episodes.length)
     return episodes ?? []
 }
 

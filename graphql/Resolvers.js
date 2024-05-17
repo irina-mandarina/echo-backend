@@ -25,11 +25,13 @@ exports.resolvers = {
                 }
 
                 if (user.spotifyAccessToken) {
-                    user.spotifyConnected = true
+                    user.spotifyConnected = true                    
                 }
                 else {
                     user.spotifyConnected = false
+                    user.streamingData = null
                 }
+                console.log("Retrieved user:", user)
                 return user
             } catch (err) {
                 console.error("Error retrieving user:", err)

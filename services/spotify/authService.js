@@ -1,6 +1,7 @@
 const querystring = require('querystring')
 const axios = require('axios')
 const { getUserByUsername, updateUser, saveState, getUsernameBySpotifyState} = require('../userService')
+const { getUserModelByField } = require('../../repositories/userRepository')
 require('dotenv').config()
 
 const clientId = process.env.SPOTIFY_CLIENT_ID
@@ -21,7 +22,7 @@ exports.generateRandomString = (length) => {
     return randomString
 }
 
-exports.requestRefreshToken = async (refreshToken) => {
+exports.saveNewSpotifyAccessToken = async (refreshToken) => {
     console.log("Requesting access token. Refresh token: ", refreshToken)
     const encodedCredentials = Buffer.from(`${clientId}:${clientSecret}`, 'utf-8').toString('base64')
 
@@ -46,6 +47,14 @@ exports.requestRefreshToken = async (refreshToken) => {
 
         console.log("New Access Token:", accessToken)
         console.log("Expires In:", expiresIn)
+
+        // save access and refresh tokens to mongoDB
+        const user = await getUserModelByField('spotifyRefreshToken', refreshToken)
+        if (!user) {
+            console.error("User not found with refresh token:", refreshToken)
+            return null
+        }
+        updateUser(user.username, { spotifyAccessToken: accessToken, spotifyRefreshToken: refreshToken })
 
         return accessToken
     }
@@ -106,7 +115,7 @@ exports.requestToken = async (req, res) => {
 
         console.log("[requestToken] Refresh Token:", refreshToken)
         // Schedule the next token refresh before the current one expires
-        setTimeout(this.requestRefreshToken(refreshToken), expiresIn * 1000) // Convert expiresIn to milliseconds
+        setTimeout(() => this.saveNewSpotifyAccessToken(refreshToken), expiresIn * 1000) // Convert expiresIn to milliseconds
 
         // save access and refresh tokens to mongoDB
         user = await getUserByUsername(user.username)
@@ -117,7 +126,10 @@ exports.requestToken = async (req, res) => {
         console.log("Successfully connected to Spotify")
     }
     catch (error) {
-        console.error("Error requesting access token. Description:", error.request?.data?.error_description)
+        if (error instanceof axios.AxiosError)
+            console.error("Error requesting access token. Description:", error.response?.data)
+        else 
+            console.error("Error requesting access token. Description:", error)
         res.redirect(process.env.CLIENT_URL + '/error')
     }
 }

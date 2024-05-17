@@ -19,7 +19,7 @@ exports.startPollingForUser = async (spotifyAccessToken) => {
             console.error("Error polling episodes for user:", error?.response?.data);
             if (error.response?.status === 401) {
                 clearInterval(refreshId);
-                console.log("Access token expired. Stopping polling for user.");
+                console.log("Access token expired. Stopping polling for user. Removing access token.");
                 userService.removeAccessToken(spotifyAccessToken);
             }
         } 
@@ -58,12 +58,12 @@ exports.pollEpisodesForAllUsers = async () => {
 exports.checkForNewAccessToken = async (user) => {
     if (!user.spotifyAccessToken && user.spotifyRefreshToken) {
         try {
-            const newAccessToken = await authService.requestRefreshToken(user.spotifyRefreshToken)
+            const newAccessToken = await authService.saveNewSpotifyAccessToken(user.spotifyRefreshToken)
             if (!newAccessToken) {
                 console.error("Error refreshing access token for user:", user.username)
                 return
             }
-            await userService.updateUser(user.username, { spotifyAccessToken: newAccessToken })
+            // await userService.updateUser(user.username, { spotifyAccessToken: newAccessToken })
             this.startPollingForUser(newAccessToken)
         } catch (error) {
             if (error instanceof AxiosError)

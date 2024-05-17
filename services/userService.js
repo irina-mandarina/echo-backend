@@ -8,6 +8,7 @@ exports.getUserByUsername = async (username, getEpisodes = false) => {
         const user = await userRepository.getUserModelByUsername(username)
         if (getEpisodes && user.spotifyAccessToken) {
             user.streamingData = await episodeService.getEpisodesForUser(user.streamingData, user.spotifyAccessToken)
+            console.log("User streaming data:", user.streamingData)
         }
         else {
             user.streamingData = []
@@ -22,11 +23,17 @@ exports.getUserByUsername = async (username, getEpisodes = false) => {
 exports.getUserBySupaId = async (supaId, getEpisodes = false) => {
     try {
         const user = await userRepository.getUserBySupaId(supaId)
+        console.log("wewe", user.spotifyAccessToken)
         if (getEpisodes && user.spotifyAccessToken) {
-            user.streamingData = await episodeService.getEpisodesForUser(user.streamingData, user.spotifyAccessToken)
-        }
-        else {
-            user.streamingData = []
+            const streamingData = await episodeService.getEpisodesForUser(user.streamingData, user.spotifyAccessToken)
+            console.log("User streaming data:", streamingData)
+            const t = {
+                id: user.id,
+                username: user.username,
+                streamingData
+            }
+            console.log("t:", t)
+            return t
         }
         return user
     } catch (error) {
