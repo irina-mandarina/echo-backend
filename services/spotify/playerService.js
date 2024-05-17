@@ -32,7 +32,7 @@ exports.pollEpisodesForUser = async (username, spotifyAccessToken) => {
             await userService.addStream(username, episode.item.id)
         }
     } catch (error) {
-        console.error("Error polling episodes for user:", error)
+        console.error("Error polling episodes for user:", error.response?.data)
     } 
     finally {
         // Wrap setTimeout in a Promise and await it before continuing

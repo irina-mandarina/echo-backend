@@ -13,19 +13,19 @@ exports.getEpisodeById = async (id, spotifyAccessToken) => {
 exports.getEpisodesForUser = async (streamingData, spotifyAccessToken) => {
     if (!streamingData) return []
     if (!spotifyAccessToken) throw new Error("No access token provided")
-    console.log("Streaming data:", streamingData)
+    // console.log("Streaming data:", streamingData)
     const episodesPromises = streamingData.map(async (stream) => {
-        console.log("Getting episode for stream", stream)
+        // console.log("Getting episode for stream", stream)
         try {
             const episode = await this.getEpisodeById(stream.episodeId, spotifyAccessToken)
-            console.log("Episode:", episode)
+            console.log("Episode:", episode.name)
             return episode
         } catch (error) {
-            console.error("Error fetching episode:", stream.episode, error)
+            console.error("Error fetching episode:", stream.episode, "Error:", error.response?.data)
         }
     })
     const episodes = await Promise.all(episodesPromises)
-    console.log("Episodes promises:", episodes)
+    console.log("Episodes promises:", episodes.length)
     return episodes ?? []
 }
 

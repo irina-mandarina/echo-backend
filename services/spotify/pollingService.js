@@ -16,7 +16,7 @@ exports.startPollingForUser = async (spotifyAccessToken) => {
                 await userService.addStream(spotifyAccessToken, episode.item.id);
             }
         } catch (error) {
-            console.error("Error polling episodes for user:", error);
+            console.error("Error polling episodes for user:", error?.response?.data);
             if (error.response?.status === 401) {
                 clearInterval(refreshId);
                 console.log("Access token expired. Stopping polling for user.");
@@ -44,18 +44,19 @@ exports.pollEpisodesForAllUsers = async () => {
                 this.startPollingForUser(user.spotifyAccessToken)
             }
             else {
-                this.checkForNewAccessToken(user)
+                console.log("User does not have access token. Polling for new access token.")
+                this.pollCheckForNewAccessToken(user)
             }
         })
         this.listenForDatabaseChanges();
         console.log('Database change listener started. (it does not work)');
     } catch (error) {
-        console.log("Error polling episodes for all users:", error)
+        console.log("[pollEpisodesForAllUsers] Error polling episodes for all users:", error)
     }
 }
 
 exports.checkForNewAccessToken = async (user) => {
-    if (user.spotifyRefreshToken) {
+    if (!user.spotifyAccessToken && user.spotifyRefreshToken) {
         try {
             const newAccessToken = await authService.requestRefreshToken(user.spotifyRefreshToken)
             if (!newAccessToken) {
@@ -66,7 +67,14 @@ exports.checkForNewAccessToken = async (user) => {
             this.startPollingForUser(newAccessToken)
         } catch (error) {
             if (error instanceof AxiosError)
-            console.error("Error refreshing access token for user:", error.code)
+            console.error("[checkForNewAccessToken] Error refreshing access token for user:", error.code)
         }
     }
+}
+
+exports.pollCheckForNewAccessToken = async (user) => {
+    setInterval(async () => {
+        if (!user.spotifyAccessToken)
+            this.checkForNewAccessToken(user)
+    }, parseInt(process.env.EPISODE_POLL_INTERVAL))
 }

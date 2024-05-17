@@ -11,7 +11,7 @@ const typeDefs = gql`
     
     type Stream {
         episode: Episode!
-        timestamp: String!
+        timestamps: [String]
     }
     
     type Episode {

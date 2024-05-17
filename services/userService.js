@@ -179,23 +179,86 @@ exports.deleteUser = async (username) => {
         throw error
     }
 }
-
 exports.addStream = async (spotifyAccessToken, episodeId) => {
     try {
-        const user = await userRepository.updateUserModel({spotifyAccessToken}, {
-            $push: {
-                streamingData: {
-                    episodeId,
-                    timestamp: Date.now()
+        // Find the user by their spotifyAccessToken
+        const user = await userRepository.getUserModelByField("spotifyAccessToken", spotifyAccessToken);
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Check if the episodeId already exists in the user's streamingData
+        const episodeIndex = user.streamingData.findIndex(stream => stream.episodeId === episodeId);
+
+        if (episodeIndex !== -1) {
+            // If the episode exists, push the new timestamp to the timestamps array
+            const updatedStreamingData = user.streamingData.map(stream => {
+                if (stream.episodeId === episodeId) {
+                    return {
+                        ...stream,
+                        timestamps: [...stream.timestamps, Date.now()]
+                    };
                 }
-            }
-        })
+                return stream;
+            });
+
+            await userRepository.updateUserModel(
+                { spotifyAccessToken },
+                { streamingData: updatedStreamingData }
+            );
+        } else {
+            // If the episode does not exist, add a new object to the streamingData array
+            const newStream = {
+                episodeId,
+                timestamps: [Date.now()]
+            };
+
+            await userRepository.updateUserModel(
+                { spotifyAccessToken },
+                { $push: { streamingData: newStream } }
+            );
+        }
+    } catch (error) {
+        console.error("Error adding stream:", error);
+        throw error;
     }
-    catch (error) {
-        console.error("Error adding stream:", error)
-        throw error
-    }
-}
+};
+// exports.addStream = async (spotifyAccessToken, episodeId) => {
+//     try {
+//         const user = await userRepository.getUserModelByField("spotifyAccessToken", spotifyAccessToken);
+//         if (!user) {
+//             throw new Error("User not found");
+//         }
+
+//         // Check if the episodeId already exists in the user's streamingData
+//         const episodeIndex = user.streamingData.findIndex(stream => stream.episodeId === episodeId);
+
+//         if (episodeIndex !== -1) {
+//             // If the episode exists, push the new timestamp to the timestamps array
+//             await userRepository.updateUserModel(
+//                 { spotifyAccessToken, "streamingData.episodeId": episodeId },
+//                 { $push: { "streamingData.$.timestamps": Date.now() } }
+//             );
+//         } else {
+//             // If the episode does not exist, add a new object to the streamingData array
+//             await userRepository.updateUserModel(
+//                 { spotifyAccessToken },
+//                 { 
+//                     $push: { 
+//                         streamingData: {
+//                             episodeId,
+//                             timestamps: [Date.now()]
+//                         } 
+//                     }
+//                 }
+//             );
+//         }
+//     } catch (error) {
+//         console.error("Error adding stream:", error);
+//         throw error;
+//     }
+// }
 
 exports.saveState = async (supaId, state) => {
     try {

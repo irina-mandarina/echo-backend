@@ -32,10 +32,10 @@ const userSchema = new mongoose.Schema({
         episodeId: {
             type: String
         },
-        timestamp: {
+        timestamps: [{
             type: Date,
             default: Date.now
-        }
+        }]
     }]
 })
 
